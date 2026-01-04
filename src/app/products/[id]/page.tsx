@@ -33,7 +33,11 @@ export default function ProductDetailPage() {
             try {
                 const res = await productService.getProductById(id as string);
                 if (res.success && res.data) {
-                    setProduct(res.data);
+                    const productData = res.data;
+                    setProduct(productData);
+                    if (productData.sizes && productData.sizes.length > 0) {
+                        setOptions(prev => ({ ...prev, size: productData.sizes![0] }));
+                    }
                 }
             } catch (error) {
                 console.error(error);
@@ -113,9 +117,19 @@ export default function ProductDetailPage() {
                                     value={options.size}
                                     onChange={(e) => setOptions({ ...options, size: e.target.value })}
                                 >
-                                    <option value="A4">A4 (21 x 29.7 cm)</option>
-                                    <option value="A5">A5 (14.8 x 21 cm)</option>
-                                    <option value="A3">A3 (29.7 x 42 cm)</option>
+                                    {product.sizes ? (
+                                        product.sizes.map((size) => (
+                                            <option key={size} value={size}>
+                                                {size}
+                                            </option>
+                                        ))
+                                    ) : (
+                                        <>
+                                            <option value="A4">A4 (21 x 29.7 cm)</option>
+                                            <option value="A5">A5 (14.8 x 21 cm)</option>
+                                            <option value="A3">A3 (29.7 x 42 cm)</option>
+                                        </>
+                                    )}
                                 </select>
                             </div>
 

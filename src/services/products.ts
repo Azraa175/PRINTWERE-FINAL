@@ -12,28 +12,20 @@ export const MOCK_PRODUCTS: Product[] = [
         category: 'Kartu Nama',
         stock: 100,
         rating: 4.8,
-        isRecommended: true
+        isRecommended: true,
+        sizes: ['10x5cm', 'Custom']
     },
     {
         id: '2',
-        name: 'Brosur A5 Full Color',
+        name: 'Brosur',
         description: 'Cetak brosur ukuran A5 1 sisi atau 2 sisi. Bahan Art Paper 150gr. Warna tajam dan jelas.',
         price: 250000,
         image: 'https://placehold.co/600x400/png?text=Brosur',
         category: 'Marketing',
         stock: 50,
         rating: 4.5,
-        isRecommended: true
-    },
-    {
-        id: '3',
-        name: 'X-Banner Stand',
-        description: 'Banner promosi ukuran 60x160cm dengan stand besi kokoh. Bahan albatros tahan air.',
-        price: 85000,
-        image: 'https://placehold.co/600x600/png?text=X-Banner',
-        category: 'Display',
-        stock: 20,
-        rating: 4.7
+        isRecommended: true,
+        sizes: ['A5']
     },
     {
         id: '4',
@@ -54,7 +46,19 @@ export const MOCK_PRODUCTS: Product[] = [
         image: 'https://placehold.co/600x400/png?text=Kalender',
         category: 'Kalender',
         stock: 75,
-        rating: 4.9
+        rating: 4.9,
+        sizes: ['A5', 'A6', 'Custom']
+    },
+    {
+        id: '6',
+        name: 'Print on Paper',
+        description: 'Jasa print dokumen berkualitas pada berbagai ukuran kertas.',
+        price: 500,
+        image: 'https://placehold.co/600x400/png?text=Print+on+Paper',
+        category: 'Document',
+        stock: 9999,
+        rating: 5.0,
+        sizes: ['A3', 'A4', 'F4', 'Quarto', 'Custom']
     }
 ];
 

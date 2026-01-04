@@ -1,7 +1,15 @@
+'use client';
 import Link from 'next/link';
-import { Printer, MapPin, Phone, Mail, Instagram, Facebook, Twitter } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Printer, MapPin, Phone, Mail } from 'lucide-react';
 
 export function Footer() {
+    const pathname = usePathname();
+
+    if (pathname && pathname.startsWith('/admin')) {
+        return null;
+    }
+
     return (
         <footer className="bg-slate-900 text-slate-300">
             <div className="container mx-auto px-4 py-12">
@@ -45,11 +53,11 @@ export function Footer() {
                         <ul className="space-y-3 text-sm">
                             <li className="flex items-start gap-3">
                                 <MapPin className="h-5 w-5 shrink-0 text-blue-500" />
-                                <span>Jl. Teknologi No. 10, Jakarta Selatan, Indonesia</span>
+                                <span>Fotocopy Ilham, Jl. Harapan Jaya, Kec. Sukarame, Kota Bandar Lampung</span>
                             </li>
                             <li className="flex items-center gap-3">
                                 <Phone className="h-5 w-5 shrink-0 text-blue-500" />
-                                <span>+62 812-3456-7890</span>
+                                <span>+62 896-3789-3713</span>
                             </li>
                             <li className="flex items-center gap-3">
                                 <Mail className="h-5 w-5 shrink-0 text-blue-500" />

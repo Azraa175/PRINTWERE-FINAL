@@ -18,6 +18,7 @@ export interface Product {
     stock: number;
     rating?: number;
     isRecommended?: boolean;
+    sizes?: string[];
 }
 
 export interface CartItem {

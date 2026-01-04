@@ -7,12 +7,15 @@ import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { usePathname } from 'next/navigation';
 
 export function Header() {
+    const pathname = usePathname();
     const [isScrolled, setIsScrolled] = useState(false);
     const cartItemsCount = useCartStore((state) => state.totalItems());
     const { user, isAuthenticated, logout } = useAuthStore();
 
+    // Hooks must be called unconditionally
     // Handle hydration mismatch for persist store
     const [mounted, setMounted] = useState(false);
     useEffect(() => {
@@ -23,6 +26,11 @@ export function Header() {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    // Conditional rendering AFTER hooks
+    if (pathname?.startsWith('/admin')) {
+        return null;
+    }
 
     if (!mounted) return null;
 
