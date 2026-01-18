@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useCartStore } from '@/store/cartStore';
-import { orderService } from '@/services/orders';
+import { useAuthStore } from '@/store/authStore';
 import { formatCurrency } from '@/lib/utils';
 
 const checkoutSchema = z.object({
@@ -32,11 +32,13 @@ const SHIPPING_COSTS: Record<string, number> = {
 export default function CheckoutPage() {
     const router = useRouter();
     const { items, totalPrice, clearCart } = useCartStore();
+    const { user, isAuthenticated } = useAuthStore();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<CheckoutForm>({
         resolver: zodResolver(checkoutSchema),
         defaultValues: {
+            name: user?.name || '',
             paymentMethod: 'QRIS',
             shippingMethod: 'JNE'
         }
@@ -49,32 +51,49 @@ export default function CheckoutPage() {
     const finalTotal = subtotal + tax + shippingCost;
 
     const onSubmit = async (data: CheckoutForm) => {
+        if (!isAuthenticated) {
+            toast.error('Silakan login terlebih dahulu');
+            router.push('/login');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
-            const response = await orderService.createOrder({
-                totalAmount: finalTotal,
-                items: items.map(item => ({
-                    ...item,
-                    price: item.product.price,
-                    options: item.options
-                })),
-                paymentMethod: data.paymentMethod,
-                shippingAddress: data.address,
-                shippingMethod: data.shippingMethod,
-                shippingCost: SHIPPING_COSTS[data.shippingMethod] || 0
+            const response = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    totalAmount: finalTotal,
+                    items: items.map(item => ({
+                        productId: item.product.id,
+                        quantity: item.quantity,
+                        price: item.product.price,
+                        fileUrl: item.options?.fileUrl || null,
+                        options: item.options
+                    })),
+                    paymentMethod: data.paymentMethod,
+                    shippingAddress: `${data.name}, ${data.phone}\n${data.address}`,
+                    shippingMethod: data.shippingMethod,
+                    shippingCost: SHIPPING_COSTS[data.shippingMethod] || 0
+                })
             });
 
-            if (response.success && response.data) {
+            const result = await response.json();
+
+            if (result.success && result.data) {
                 clearCart();
                 toast.success('Pesanan berhasil dibuat!');
                 if (data.paymentMethod === 'QRIS') {
-                    router.push(`/payment/${response.data.id}`);
+                    router.push(`/payment/${result.data.id}`);
                 } else {
-                    router.push(`/orders/${response.data.id}`);
+                    router.push(`/my-orders`);
                 }
+            } else {
+                toast.error(result.error || 'Gagal membuat pesanan');
             }
         } catch (error) {
             console.error(error);
+            toast.error('Gagal membuat pesanan');
         } finally {
             setIsSubmitting(false);
         }

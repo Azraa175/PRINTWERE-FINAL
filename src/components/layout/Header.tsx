@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, User, Menu, Search, Printer } from 'lucide-react';
+import { ShoppingCart, User, Menu, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
@@ -13,9 +13,8 @@ export function Header() {
     const pathname = usePathname();
     const [isScrolled, setIsScrolled] = useState(false);
     const cartItemsCount = useCartStore((state) => state.totalItems());
-    const { user, isAuthenticated, logout } = useAuthStore();
+    const { user, isAuthenticated } = useAuthStore();
 
-    // Hooks must be called unconditionally
     // Handle hydration mismatch for persist store
     const [mounted, setMounted] = useState(false);
     useEffect(() => {
@@ -60,9 +59,11 @@ export function Header() {
                     <Link href="/products" className="text-sm font-medium text-gray-700 hover:text-blue-600">
                         Produk
                     </Link>
-                    <Link href="/track-order" className="text-sm font-medium text-gray-700 hover:text-blue-600">
-                        Lacak Pesanan
-                    </Link>
+                    {isAuthenticated && (
+                        <Link href="/my-orders" className="text-sm font-medium text-gray-700 hover:text-blue-600">
+                            Pesanan Saya
+                        </Link>
+                    )}
                 </nav>
 
                 {/* Actions */}
@@ -79,16 +80,20 @@ export function Header() {
                     </Link>
 
                     {isAuthenticated && user ? (
-                        <div className="flex items-center gap-4">
-                            <Link href={user.role === 'ADMIN' ? '/admin/dashboard' : '/orders'}>
+                        <div className="flex items-center gap-2">
+                            {user.role === 'ADMIN' && (
+                                <Link href="/admin/dashboard">
+                                    <Button variant="outline" size="sm">
+                                        Admin
+                                    </Button>
+                                </Link>
+                            )}
+                            <Link href="/profile">
                                 <Button variant="ghost" size="sm" className="gap-2">
                                     <User className="h-4 w-4" />
                                     <span className="hidden sm:inline">{user.name}</span>
                                 </Button>
                             </Link>
-                            <Button variant="outline" size="sm" onClick={() => logout()}>
-                                Logout
-                            </Button>
                         </div>
                     ) : (
                         <div className="flex items-center gap-2">

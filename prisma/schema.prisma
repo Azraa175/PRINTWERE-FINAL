@@ -1,43 +1,29 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-datasource db {
-  provider = "postgresql"
-}
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
-enum UserRole {
-  ADMIN
-  CUSTOMER
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
 }
 
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  PROCESSING
-  READY
-  COMPLETED
-  CANCELLED
-}
-
-enum PaymentMethod {
-  COD
-  QRIS
-}
+// Enum removed for SQLite compatibility
+// enum UserRole { ADMIN, CUSTOMER }
+// enum OrderStatus { ... }
+// enum PaymentMethod { ... }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  role      UserRole @default(CUSTOMER)
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String?
+  role         String   @default("CUSTOMER")
+  status       String   @default("ACTIVE") // ACTIVE, BANNED
   avatar    String?
+  phone     String?
+  bio       String?
+  gender    String?   // MALE, FEMALE, OTHER
+  birthDate String?   // ISO date string for SQLite
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   orders    Order[]
@@ -53,6 +39,8 @@ model Product {
   stock         Int
   rating        Float?      @default(0)
   isRecommended Boolean     @default(false)
+  sizes         String?     // Comma separated sizes
+  finishing     String?     // Comma separated: Laminasi,Doff,Glossy
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   orderItems    OrderItem[]
@@ -64,8 +52,8 @@ model Order {
   user            User          @relation(fields: [userId], references: [id])
   items           OrderItem[]
   totalAmount     Float
-  status          OrderStatus   @default(PENDING)
-  paymentMethod   PaymentMethod
+  status          String        @default("PENDING") // Was OrderStatus
+  paymentMethod   String        // Was PaymentMethod
   paymentProof    String?
   shippingAddress String
   shippingMethod  String
@@ -83,5 +71,5 @@ model OrderItem {
   quantity  Int
   price     Float
   fileUrl   String?
-  options   Json?
+  options   String?     // Stored as JSON string
 }

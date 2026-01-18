@@ -3,13 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Check, Star, Upload, FileText } from 'lucide-react';
+import { Star, Upload, FileText, Loader2, X, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useCartStore } from '@/store/cartStore';
 import { toast } from 'sonner';
-import { productService } from '@/services/products';
 import { Product } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 
@@ -20,6 +19,8 @@ export default function ProductDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
     const [file, setFile] = useState<File | null>(null);
+    const [fileUrl, setFileUrl] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
     const [options, setOptions] = useState({
         size: 'A4',
         material: 'Standard',
@@ -31,9 +32,10 @@ export default function ProductDetailPage() {
         if (!id) return;
         const fetchProduct = async () => {
             try {
-                const res = await productService.getProductById(id as string);
-                if (res.success && res.data) {
-                    const productData = res.data;
+                const res = await fetch(`/api/products/${id}`);
+                const data = await res.json();
+                if (data.success && data.data) {
+                    const productData = data.data;
                     setProduct(productData);
                     if (productData.sizes && productData.sizes.length > 0) {
                         setOptions(prev => ({ ...prev, size: productData.sizes![0] }));
@@ -48,9 +50,58 @@ export default function ProductDetailPage() {
         fetchProduct();
     }, [id]);
 
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFile = e.target.files?.[0];
+        if (!selectedFile) return;
+
+        // Validate file size
+        if (selectedFile.size > 10 * 1024 * 1024) {
+            toast.error('File terlalu besar. Maksimal 10MB');
+            return;
+        }
+
+        setFile(selectedFile);
+        setIsUploading(true);
+
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                setFileUrl(data.data.url);
+                toast.success('File berhasil diupload');
+            } else {
+                toast.error(data.error || 'Gagal upload file');
+                setFile(null);
+            }
+        } catch (error) {
+            toast.error('Gagal upload file');
+            setFile(null);
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const removeFile = () => {
+        setFile(null);
+        setFileUrl(null);
+    };
+
     const handleAddToCart = () => {
         if (!product) return;
-        addItem(product, quantity, { ...options, fileName: file?.name });
+        addItem(product, quantity, {
+            ...options,
+            fileName: file?.name,
+            fileUrl: fileUrl // Pass the uploaded file URL
+        });
+        toast.success('Produk ditambahkan ke keranjang');
         router.push('/cart');
     };
 
@@ -150,28 +201,48 @@ export default function ProductDetailPage() {
                         {/* File Upload */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-2">Upload Desain</label>
-                            <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 hover:bg-slate-50 transition-colors text-center cursor-pointer relative">
-                                <input
-                                    type="file"
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                    accept=".pdf,.jpg,.jpeg,.png"
-                                />
+                            {file && fileUrl ? (
+                                <div className="border-2 border-green-300 bg-green-50 rounded-lg p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <CheckCircle className="h-8 w-8 text-green-600" />
+                                            <div>
+                                                <p className="font-medium text-green-800">{file.name}</p>
+                                                <p className="text-sm text-green-600">{(file.size / 1024 / 1024).toFixed(2)} MB - Berhasil diupload</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={removeFile}
+                                            className="p-2 hover:bg-green-100 rounded-full transition-colors"
+                                        >
+                                            <X className="h-5 w-5 text-green-600" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 hover:bg-slate-50 transition-colors text-center cursor-pointer relative">
+                                    <input
+                                        type="file"
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                        onChange={handleFileChange}
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        disabled={isUploading}
+                                    />
 
-                                {file ? (
-                                    <div className="flex flex-col items-center text-blue-600">
-                                        <FileText className="h-8 w-8 mb-2" />
-                                        <span className="font-medium text-sm">{file.name}</span>
-                                        <span className="text-xs text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
-                                    </div>
-                                ) : (
-                                    <div className="flex flex-col items-center text-slate-400">
-                                        <Upload className="h-8 w-8 mb-2" />
-                                        <span className="font-medium text-sm text-slate-600">Klik untuk upload file</span>
-                                        <span className="text-xs mt-1">PDF, JPG, PNG (Max 10MB)</span>
-                                    </div>
-                                )}
-                            </div>
+                                    {isUploading ? (
+                                        <div className="flex flex-col items-center text-blue-600">
+                                            <Loader2 className="h-8 w-8 mb-2 animate-spin" />
+                                            <span className="font-medium text-sm">Mengupload file...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center text-slate-400">
+                                            <Upload className="h-8 w-8 mb-2" />
+                                            <span className="font-medium text-sm text-slate-600">Klik untuk upload file</span>
+                                            <span className="text-xs mt-1">PDF, JPG, PNG (Max 10MB)</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Notes */}
@@ -200,7 +271,7 @@ export default function ProductDetailPage() {
                                 size="lg"
                                 className="flex-1"
                                 onClick={handleAddToCart}
-                                disabled={!file && false} // Optional: require file
+                                disabled={isUploading}
                             >
                                 + Keranjang - {formatCurrency(product.price * quantity)}
                             </Button>

@@ -1,37 +1,66 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useOrders } from '@/hooks/useOrders';
 import Link from 'next/link';
 import { Package } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { orderService } from '@/services/orders';
-import { Order } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function OrderListPage() {
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const { orders, isLoading, mutate } = useOrders();
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            try {
-                const res = await orderService.getMyOrders();
-                if (res.success && res.data) {
-                    setOrders(res.data);
-                }
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setIsLoading(false);
+    const createTestOrder = async () => {
+        try {
+            // 1. Get a random product to order
+            const productRes = await fetch('/api/products');
+            const productData = await productRes.json();
+
+            if (!productData.success || !productData.data || productData.data.length === 0) {
+                alert('Tidak ada produk tersedia untuk simulasi');
+                return;
             }
-        };
-        fetchOrders();
-    }, []);
+
+            // Pick random product
+            const randomProduct = productData.data[Math.floor(Math.random() * productData.data.length)];
+
+            // 2. Create order
+            await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: 'user-demo',
+                    totalAmount: randomProduct.price,
+                    paymentMethod: 'QRIS',
+                    shippingAddress: 'Realtime Demo Address',
+                    shippingMethod: 'JNE',
+                    shippingCost: 10000,
+                    items: {
+                        create: [
+                            {
+                                quantity: 1,
+                                price: randomProduct.price,
+                                productId: randomProduct.id, // Connect to existing product
+                                options: { demo: true }
+                            }
+                        ]
+                    }
+                })
+            });
+            mutate(); // Trigger immediate refresh for better UX
+        } catch (e) {
+            console.error("Failed to create test order", e);
+        }
+    };
 
     return (
         <div className="container mx-auto px-4 py-8">
-            <h1 className="text-2xl font-bold mb-8">Riwayat Pesanan</h1>
+            <div className="flex justify-between items-center mb-8">
+                <h1 className="text-2xl font-bold">Riwayat Pesanan</h1>
+                <Button onClick={createTestOrder} variant="secondary">
+                    + Simulasi Pesanan Baru
+                </Button>
+            </div>
 
             {isLoading ? (
                 <div className="space-y-4">
@@ -53,7 +82,9 @@ export default function OrderListPage() {
                             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-semibold text-slate-900">{order.items[0].product.name}</span>
+                                        <span className="font-semibold text-slate-900">
+                                            {order.items?.[0]?.product?.name || 'Produk'}
+                                        </span>
                                         {order.items.length > 1 && (
                                             <span className="text-xs text-slate-500">+{order.items.length - 1} produk lainnya</span>
                                         )}
@@ -73,7 +104,7 @@ export default function OrderListPage() {
 
                             <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
                                 <Link href={`/orders/${order.id}`}>
-                                    <Button variant="outline" size="sm">Lihat Detail Pesanan</Button>
+                                    <Button variant="outline" size="sm">Lihat Detail</Button>
                                 </Link>
                                 {order.status === 'PENDING' && order.paymentMethod === 'QRIS' && (
                                     <Link href={`/payment/${order.id}`}>

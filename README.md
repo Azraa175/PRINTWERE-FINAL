@@ -1,69 +1,76 @@
-# PrintWere - Online Printing E-Commerce
+# PrintWere - Online Printing E-Commerce 🖨️
 
-Web aplikasi e-commerce untuk percetakan online "PrintWere". Dibangun dengan Next.js App Router, TypeScript, dan Tailwind CSS.
+Web aplikasi e-commerce modern untuk percetakan online "PrintWere". Dibangun untuk memudahkan proses pemesanan cetak dengan fitur upload file desain dan pelacakan pesanan real-time.
 
-## Tech Stack
+## ✨ Fitur Utama
 
-- **Framework**: Next.js 14+ (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **State Management**: Zustand
-- **Icons**: Lucide React
-- **Validation**: Zod + React Hook Form
+- **Real-time Admin Dashboard**: Update statistik dan pesanan secara instan via SWR Polling.
+- **Secure Authentication**: Menggunakan NextAuth.js v5 dengan hashing password `bcryptjs`.
+- **Customizable Products**: Upload desain, pilih ukuran, dan opsi finishing.
+- **Status Tracking**: Pelanggan dapat memantau proses produksi secara real-time.
+- **Fail-Safe UI**: Dilengkapi dengan Global Error Boundaries dan Loading states.
 
-## Fitur Utama
+## 🚀 Tech Stack
 
-### Customer Side
-- **Home Page**: Hero banner dan rekomendasi produk
-- **Product Detail**: Upload file cetak, konfigurasi ukuran/bahan
-- **Cart & Checkout**: Manajemen keranjang dan checkout dengan validasi
-- **Payment**: Dukungan COD dan QRIS Manual (Upload Bukti)
-- **Order Tracking**: Pelacakan status pesanan real-time
+- **Framework**: [Next.js 15+](https://nextjs.org/) (App Router)
+- **Database**: [SQLite](https://sqlite.org/) via [Prisma ORM](https://www.prisma.io/)
+- **Auth**: [NextAuth.js v5 Beta](https://authjs.dev/)
+- **State Management**: [Zustand](https://zustand-demo.pmnd.rs/)
+- **Data Fetching**: [SWR](https://swr.vercel.app/)
+- **Styling**: Vanilla CSS & Tailwind CSS
 
-### Admin Side
-- **Dashboard**: Statistik penjualan dan order
-- **Product Management**: CRUD produk
-- **Order Management**: Update status pesanan (Terima/Tolak/Proses/Selesai)
-- **User Management**: Manajemen pengguna
+## 🛠️ Persiapan & Instalasi
 
-## Cara Menjalankan Project
+### 1. Prasyarat
+Pastikan Anda sudah menginstal:
+- [Node.js](https://nodejs.org/) (v18.x atau lebih baru)
+- [npm](https://www.npmjs.com/)
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Jalankan development server:
-   ```bash
-   npm run dev
-   ```
-
-3. Buka browser di [http://localhost:3000](http://localhost:3000)
-
-## Folder Structure
-
-```
-src/
-├── app/                 # Next.js App Router pages
-│   ├── (auth)/         # Auth routes (login/register)
-│   ├── admin/          # Admin pages
-│   ├── api/            # API routes (if needed)
-│   └── ...             # User pages
-├── components/         # Reusable UI components
-│   ├── layout/         # Header, Footer, Sidebar
-│   └── ui/             # Shadcn-like base components
-├── lib/                # Utilities
-├── services/           # API integration layer
-├── store/              # Global state (Zustand)
-└── types/              # TypeScript interfaces
+### 2. Kloning Repositori
+```bash
+git clone https://github.com/username/printwere.git
+cd printwere
 ```
 
-## Credential Demo
+### 3. Instalasi Dependencies
+```bash
+npm install
+```
 
-**Admin**
-- Email: `admin@printwere.com`
-- Password: `admin`
+### 4. Konfigurasi Environment
+Salin file `.env.example` menjadi `.env` dan isi variabel yang diperlukan:
+```bash
+cp .env.example .env
+```
+*Pastikan `AUTH_SECRET` diisi (generate dengan `npx auth secret`).*
 
-**User**
-- Email: `user@printwere.com`
-- Password: `user`
+### 5. Setup Database (Prisma)
+Jalankan langkah-langkah berikut untuk menginisialisasi database:
+```bash
+# Generate Prisma Client
+npx prisma generate
+
+# Sinkronisasi Skema Database
+npx prisma db push
+
+# Seed Data Awal (Admin & Produk Demo)
+npx prisma db seed
+```
+
+## 💻 Menjalankan Aplikasi
+
+Jalankan development server:
+```bash
+npm run dev
+```
+Buka [http://localhost:3000](http://localhost:3000) di browser Anda.
+
+## 📊 Kredensial Demo (Setelah Seeding)
+
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| **Admin** | `admin@printwere.com` | `admin` |
+| **Customer** | `user@printwere.com` | `user` |
+
+---
+*Dikembangkan dengan ❤️ untuk Project PPL.*

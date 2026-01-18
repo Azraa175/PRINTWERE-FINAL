@@ -1,21 +1,23 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
     LayoutDashboard,
     ShoppingBag,
     ShoppingCart,
     Users,
-    Settings,
     LogOut,
     Menu,
-    X
+    X,
+    Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
 import { useState } from 'react';
+import { signOut } from 'next-auth/react';
+import { toast } from 'sonner';
 
 const MENU_ITEMS = [
     { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -26,8 +28,24 @@ const MENU_ITEMS = [
 
 export function AdminSidebar() {
     const pathname = usePathname();
-    const logout = useAuthStore(state => state.logout);
+    const router = useRouter();
+    const storeLogout = useAuthStore(state => state.logout);
     const [isOpen, setIsOpen] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const handleLogout = async () => {
+        setIsLoggingOut(true);
+        try {
+            await signOut({ redirect: false });
+            storeLogout();
+            toast.success('Berhasil logout');
+            router.push('/login');
+        } catch (error) {
+            toast.error('Gagal logout');
+        } finally {
+            setIsLoggingOut(false);
+        }
+    };
 
     return (
         <>
@@ -89,10 +107,15 @@ export function AdminSidebar() {
                     <Button
                         variant="outline"
                         className="w-full justify-start gap-3 text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
-                        onClick={() => logout()}
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
                     >
-                        <LogOut className="h-5 w-5" />
-                        Logout
+                        {isLoggingOut ? (
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                            <LogOut className="h-5 w-5" />
+                        )}
+                        {isLoggingOut ? 'Logging out...' : 'Logout'}
                     </Button>
                 </div>
             </aside>

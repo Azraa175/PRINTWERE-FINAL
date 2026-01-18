@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { ArrowRight, CheckCircle, Truck, Clock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ProductCard } from '@/components/ProductCard';
-import { productService } from '@/services/products';
 import { useEffect, useState } from 'react';
 import { Product } from '@/types';
 
@@ -15,9 +14,11 @@ export default function HomePage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await productService.getReceivedProducts();
-        if (response.success && response.data) {
-          setRecommendedProducts(response.data);
+        const response = await fetch('/api/products');
+        const data = await response.json();
+        if (data.success && data.data) {
+          // Take only first 4 for recommendation
+          setRecommendedProducts(data.data.slice(0, 4));
         }
       } catch (error) {
         console.error('Failed to fetch products', error);
@@ -124,9 +125,11 @@ export default function HomePage() {
             Tim kami siap membantu memberika solusi terbaik.
           </p>
           <div className="flex justify-center gap-4">
-            <Button size="lg" variant="secondary" className="rounded-full">
-              Mulai Pesanan
-            </Button>
+            <Link href="/products">
+              <Button size="lg" variant="secondary" className="rounded-full">
+                Mulai Pesanan
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

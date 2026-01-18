@@ -1,38 +1,39 @@
 'use client';
 
-import { ShoppingBag, DollarSign, Clock, TrendingUp } from 'lucide-react';
+import { ShoppingBag, DollarSign, Clock, Users, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
+import { useAdminStats, useAdminOrders } from '@/hooks/useAdminOrders';
+import Link from 'next/link';
+import { Badge } from '@/components/ui/Badge';
 
 export default function AdminDashboardPage() {
-    // Mock stats
-    const stats = [
+    const { stats, isLoading: statsLoading } = useAdminStats();
+    const { orders: recentOrders, isLoading: ordersLoading } = useAdminOrders();
+
+    const dashboardStats = [
         {
             title: 'Total Pendapatan',
-            value: 15450000,
+            value: stats.totalRevenue,
             icon: DollarSign,
-            trend: '+12.5%',
             color: 'text-green-600',
         },
         {
             title: 'Total Pesanan',
-            value: 124,
+            value: stats.totalOrders,
             icon: ShoppingBag,
-            trend: '+8.2%',
             color: 'text-blue-600',
         },
         {
             title: 'Pesanan Pending',
-            value: 12,
+            value: stats.pendingOrders,
             icon: Clock,
-            trend: '-2.4%',
             color: 'text-orange-600',
         },
         {
-            title: 'Produk Terlaris',
-            value: 'Kartu Nama',
-            icon: TrendingUp,
-            trend: '+4.1%',
+            title: 'Total Pelanggan',
+            value: stats.totalUsers,
+            icon: Users,
             color: 'text-purple-600',
         },
     ];
@@ -42,7 +43,7 @@ export default function AdminDashboardPage() {
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {stats.map((stat) => (
+                {dashboardStats.map((stat) => (
                     <Card key={stat.title}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-slate-600">
@@ -52,18 +53,14 @@ export default function AdminDashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">
-                                {typeof stat.value === 'number' && stat.title.includes('top')
-                                    ? stat.value
-                                    : stat.title.includes('Pendapatan')
+                                {statsLoading ? (
+                                    <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                                ) : (
+                                    stat.title.includes('Pendapatan')
                                         ? formatCurrency(stat.value as number)
-                                        : stat.value}
+                                        : stat.value
+                                )}
                             </div>
-                            <p className="text-xs text-slate-500 mt-1">
-                                <span className={stat.trend.startsWith('+') ? 'text-green-600' : 'text-red-600'}>
-                                    {stat.trend}
-                                </span>{' '}
-                                dari bulan lalu
-                            </p>
                         </CardContent>
                     </Card>
                 ))}
@@ -86,17 +83,32 @@ export default function AdminDashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                                <div key={i} className="flex items-center">
-                                    <div className="ml-4 space-y-1">
-                                        <p className="text-sm font-medium leading-none">Order #ORD-{2024000 + i}</p>
-                                        <p className="text-xs text-slate-500">2 items • Rp 150.000</p>
-                                    </div>
-                                    <div className="ml-auto font-medium text-sm text-green-600">
-                                        Selesai
-                                    </div>
+                            {ordersLoading ? (
+                                <div className="flex justify-center py-4">
+                                    <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
                                 </div>
-                            ))}
+                            ) : recentOrders.length === 0 ? (
+                                <p className="text-sm text-slate-500 text-center py-4">Belum ada pesanan.</p>
+                            ) : (
+                                recentOrders.slice(0, 5).map((order: any) => (
+                                    <div key={order.id} className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium leading-none">
+                                                {order.user?.name || 'Pelanggan'}
+                                            </p>
+                                            <p className="text-xs text-slate-500">
+                                                {formatDate(order.createdAt)} • {formatCurrency(order.totalAmount)}
+                                            </p>
+                                        </div>
+                                        <Badge status={order.status === 'COMPLETED' ? 'success' : 'warning'} className="text-[10px] px-1.5 py-0 h-5">
+                                            {order.status}
+                                        </Badge>
+                                    </div>
+                                ))
+                            )}
+                            <Link href="/admin/orders" className="block text-center text-xs text-blue-600 hover:underline pt-2">
+                                Lihat Semua Pesanan
+                            </Link>
                         </div>
                     </CardContent>
                 </Card>

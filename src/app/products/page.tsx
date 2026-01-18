@@ -1,8 +1,8 @@
-import { productService } from '@/services/products';
+import { prisma } from '@/lib/prisma';
 import { ProductCard } from '@/components/ProductCard';
 
 export default async function Products() {
-    const { data: products } = await productService.getAllProducts();
+    const products = await prisma.product.findMany({});
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -15,7 +15,13 @@ export default async function Products() {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {products?.map((product) => (
-                    <ProductCard key={product.id} product={product} />
+                    <ProductCard
+                        key={product.id}
+                        product={{
+                            ...product,
+                            sizes: product.sizes ? product.sizes.split(',') : undefined
+                        }}
+                    />
                 ))}
             </div>
         </div>

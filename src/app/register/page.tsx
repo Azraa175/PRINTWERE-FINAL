@@ -6,19 +6,18 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { useAuthStore } from '@/store/authStore';
-import { authService } from '@/services/auth';
 
 const registerSchema = z.object({
-    name: z.string().min(3, 'Nama harus diisi'),
+    name: z.string().min(3, 'Nama harus diisi minimal 3 karakter'),
     email: z.string().email('Email tidak valid'),
     password: z.string().min(6, 'Password minimal 6 karakter'),
     confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
-    message: "Password tidak sama",
+    message: "Konfirmasi password tidak cocok",
     path: ["confirmPassword"],
 });
 
@@ -26,8 +25,8 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
     const router = useRouter();
-    const setAuth = useAuthStore((state) => state.login);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
 
     const { register, handleSubmit, formState: { errors } } = useForm<RegisterForm>({
         resolver: zodResolver(registerSchema),
@@ -35,14 +34,31 @@ export default function RegisterPage() {
 
     const onSubmit = async (data: RegisterForm) => {
         setIsLoading(true);
+        setError('');
         try {
-            const res = await authService.register(data);
-            if (res.success && res.data) {
-                setAuth(res.data.user, res.data.token);
-                router.push('/');
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: data.name,
+                    email: data.email,
+                    password: data.password
+                })
+            });
+
+            const result = await res.json();
+
+            if (result.success) {
+                toast.success('Registrasi berhasil! Silakan masuk.');
+                router.push('/login');
+            } else {
+                setError(result.error || 'Gagal mendaftar');
+                toast.error(result.error || 'Gagal mendaftar');
             }
         } catch (err) {
-            console.error(err);
+            console.error('Registration error:', err);
+            setError('Terjadi kesalahan pada server');
+            toast.error('Terjadi kesalahan pada server');
         } finally {
             setIsLoading(false);
         }
@@ -64,28 +80,43 @@ export default function RegisterPage() {
                 </div>
 
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+                    {error && (
+                        <div className="rounded-md bg-red-50 p-4 border border-red-200">
+                            <div className="flex">
+                                <AlertCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
+                                <div className="ml-3">
+                                    <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="space-y-4 rounded-md shadow-sm">
                         <Input
                             label="Nama Lengkap"
                             error={errors.name?.message}
+                            autoComplete="name"
                             {...register('name')}
                         />
                         <Input
                             label="Email Address"
                             type="email"
                             error={errors.email?.message}
+                            autoComplete="email"
                             {...register('email')}
                         />
                         <Input
                             label="Password"
                             type="password"
                             error={errors.password?.message}
+                            autoComplete="new-password"
                             {...register('password')}
                         />
                         <Input
                             label="Konfirmasi Password"
                             type="password"
                             error={errors.confirmPassword?.message}
+                            autoComplete="new-password"
                             {...register('confirmPassword')}
                         />
                     </div>

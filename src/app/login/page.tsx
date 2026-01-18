@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/store/authStore';
-import { authService } from '@/services/auth';
+import { signIn } from 'next-auth/react';
 
 const loginSchema = z.object({
     email: z.string().email('Email tidak valid'),
@@ -34,18 +34,55 @@ export default function LoginPage() {
         setError('');
         setIsLoading(true);
         try {
-            const res = await authService.login(data.email, data.password);
-            if (res.success && res.data) {
-                setAuth(res.data.user, res.data.token);
-                toast.success(`Selamat datang kembali, ${res.data.user.name}`);
-                if (res.data.user.role === 'ADMIN') {
-                    router.push('/admin/dashboard');
-                } else {
-                    router.push('/');
-                }
-            } else {
+            const result = await signIn('credentials', {
+                email: data.email,
+                password: data.password,
+                redirect: false,
+            });
+
+            if (result?.error) {
                 toast.error('Email atau password salah');
                 setError('Email atau password salah');
+                setIsLoading(false);
+                return;
+            }
+
+            // Fetch real user data from profile API
+            try {
+                const profileRes = await fetch('/api/user/profile');
+                const profileData = await profileRes.json();
+
+                if (profileData.success && profileData.data) {
+                    const user = profileData.data;
+
+                    // Check if user is banned
+                    if (user.status === 'BANNED') {
+                        toast.error('Akun Anda telah diblokir. Hubungi admin.');
+                        setError('Akun Anda telah diblokir.');
+                        setIsLoading(false);
+                        return;
+                    }
+
+                    setAuth({
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        role: user.role,
+                        avatar: user.avatar,
+                    }, 'session-token');
+
+                    toast.success(`Selamat datang kembali, ${user.name}`);
+                    router.push(user.role === 'ADMIN' ? '/admin/dashboard' : '/');
+                    router.refresh();
+                } else {
+                    throw new Error('Failed to get profile');
+                }
+            } catch (profileErr) {
+                // Fallback: still allow login but with limited info
+                console.error('Profile fetch error:', profileErr);
+                toast.success('Login berhasil');
+                router.push('/');
+                router.refresh();
             }
         } catch (err) {
             toast.error('Terjadi kesalahan, silakan coba lagi');
