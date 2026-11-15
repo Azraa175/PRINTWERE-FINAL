@@ -19,7 +19,7 @@ export function AdminHeader() {
     };
 
     return (
-        <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/95 px-4 sm:px-8 backdrop-blur-sm">
+        <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between gap-2 border-b border-slate-200 bg-white/95 pl-14 pr-3 sm:px-8 backdrop-blur-sm">
             {/* Left: Page Title Context */}
             <div className="flex items-center gap-3">
                 <div className="flex flex-col">

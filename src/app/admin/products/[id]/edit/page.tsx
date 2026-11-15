@@ -133,18 +133,18 @@ export default function EditProductPage() {
         <div className="max-w-3xl mx-auto space-y-6">
             {/* Top Navigation */}
             <div className="flex items-center gap-3">
-                <Link href="/admin/products">
+                <Link href="/admin/products" className="shrink-0">
                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-50">
                         <ArrowLeft className="h-4 w-4 text-slate-600" />
                     </Button>
                 </Link>
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">Edit Produk</h1>
+                <div className="min-w-0">
+                    <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 leading-tight">Edit Produk</h1>
                     <p className="text-xs text-slate-500">Perbarui spesifikasi, harga, dan ketersediaan stok produk</p>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
+            <form onSubmit={handleSubmit} className="space-y-6 bg-white p-4 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
                 <div>
                     <Input
                         label="Nama Produk"
