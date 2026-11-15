@@ -153,110 +153,202 @@ export default function AdminOrdersPage() {
                         </p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-xs text-left">
-                            <thead className="bg-slate-50/80 text-slate-500 uppercase text-[11px] font-bold border-b border-slate-100">
-                                <tr>
-                                    <th className="px-5 py-3.5">No. Pesanan</th>
-                                    <th className="px-5 py-3.5">Pelanggan</th>
-                                    <th className="px-5 py-3.5">Tanggal</th>
-                                    <th className="px-5 py-3.5">Metode / Kurir</th>
-                                    <th className="px-5 py-3.5">Total Tagihan</th>
-                                    <th className="px-5 py-3.5">Status Cetak</th>
-                                    <th className="px-5 py-3.5 text-right">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {filteredOrders.map((order: any) => {
-                                    const statusMeta = ORDER_STATUS_LABELS[order.status] || { 
-                                        label: order.status, 
-                                        color: 'bg-slate-100 text-slate-800 border-slate-300' 
-                                    };
-                                    const isFinished = ['SELESAI', 'DIBATALKAN', 'COMPLETED', 'CANCELLED'].includes(order.status);
-                                    const isWaitingVerif = order.status === 'MENUNGGU_VERIFIKASI';
+                    <>
+                        {/* Mobile Card View (block md:hidden) */}
+                        <div className="block md:hidden divide-y divide-slate-100">
+                            {filteredOrders.map((order: any) => {
+                                const statusMeta = ORDER_STATUS_LABELS[order.status] || { 
+                                    label: order.status, 
+                                    color: 'bg-slate-100 text-slate-800 border-slate-300' 
+                                };
+                                const isFinished = ['SELESAI', 'DIBATALKAN', 'COMPLETED', 'CANCELLED'].includes(order.status);
+                                const isWaitingVerif = order.status === 'MENUNGGU_VERIFIKASI';
 
-                                    return (
-                                        <tr 
-                                            key={order.id} 
-                                            className="hover:bg-slate-50/70 transition-colors"
-                                        >
-                                            <td className="px-5 py-4 font-mono font-bold text-slate-900">
+                                return (
+                                    <div key={order.id} className="p-4 space-y-3 bg-white">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="font-mono font-bold text-xs bg-slate-100 px-2.5 py-1 rounded-md text-slate-900">
                                                 {order.orderNo || `#${order.id.slice(0, 8).toUpperCase()}`}
-                                            </td>
-                                            <td className="px-5 py-4">
-                                                <div className="font-bold text-slate-900">{order.user?.name || 'Pelanggan'}</div>
-                                                <div className="text-[11px] text-slate-400 truncate max-w-[150px]">{order.user?.email}</div>
-                                            </td>
-                                            <td className="px-5 py-4 text-slate-600 whitespace-nowrap">
-                                                {formatDate(order.createdAt)}
-                                            </td>
-                                            <td className="px-5 py-4 text-slate-600">
-                                                <div className="font-semibold">{order.paymentMethod}</div>
-                                                <div className="text-[10px] text-slate-400">{order.shippingMethod || 'Standard'}</div>
-                                            </td>
-                                            <td className="px-5 py-4 font-bold text-blue-600 whitespace-nowrap">
-                                                {formatCurrency(order.totalAmount)}
-                                            </td>
-                                            <td className="px-5 py-4 whitespace-nowrap">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusMeta.color}`}>
-                                                    {statusMeta.label}
-                                                </span>
-                                            </td>
-                                            <td className="px-5 py-4 text-right whitespace-nowrap">
-                                                <div className="flex items-center justify-end gap-1.5">
-                                                    <Link href={`/admin/orders/${order.id}`}>
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="icon" 
-                                                            className="h-8 w-8 rounded-lg text-blue-600 hover:bg-blue-50" 
-                                                            title="Lihat Detail Pesanan"
-                                                        >
-                                                            <Eye className="h-4 w-4" />
-                                                        </Button>
-                                                    </Link>
+                                            </span>
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusMeta.color}`}>
+                                                {statusMeta.label}
+                                            </span>
+                                        </div>
 
-                                                    {!isFinished && (
-                                                        <>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className={cn(
-                                                                    "h-8 w-8 rounded-lg",
-                                                                    isWaitingVerif 
-                                                                        ? "text-emerald-600 hover:bg-emerald-50" 
-                                                                        : "text-blue-600 hover:bg-blue-50"
-                                                                )}
-                                                                title={isWaitingVerif ? "Setujui Pembayaran" : "Majukan Tahap"}
-                                                                onClick={() => handleConfirm(order.id)}
-                                                                disabled={processingId === order.id}
-                                                            >
-                                                                {processingId === order.id ? (
-                                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                                ) : (
-                                                                    <CheckCircle className="h-4 w-4" />
-                                                                )}
-                                                            </Button>
+                                        <div className="flex items-start justify-between gap-3 text-xs">
+                                            <div>
+                                                <p className="font-bold text-slate-900">{order.user?.name || 'Pelanggan'}</p>
+                                                <p className="text-[11px] text-slate-400">{order.user?.email}</p>
+                                                <p className="text-[10px] text-slate-500 mt-1">
+                                                    {formatDate(order.createdAt)} • {order.paymentMethod}
+                                                </p>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className="text-[10px] text-slate-400 uppercase font-semibold">Total Tagihan</p>
+                                                <p className="font-extrabold text-blue-600 text-sm">
+                                                    {formatCurrency(order.totalAmount)}
+                                                </p>
+                                            </div>
+                                        </div>
 
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-8 w-8 rounded-lg text-rose-600 hover:bg-rose-50"
-                                                                title="Batalkan Pesanan"
-                                                                onClick={() => handleCancel(order.id)}
-                                                                disabled={processingId === order.id}
+                                        {/* Actions for mobile card */}
+                                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                                            <Link href={`/admin/orders/${order.id}`} className="flex-1">
+                                                <Button 
+                                                    variant="outline" 
+                                                    size="sm" 
+                                                    className="w-full h-8 text-xs font-semibold gap-1.5 border-slate-200"
+                                                >
+                                                    <Eye className="h-3.5 w-3.5 text-blue-600" />
+                                                    <span>Detail</span>
+                                                </Button>
+                                            </Link>
+
+                                            {!isFinished && (
+                                                <>
+                                                    <Button
+                                                        size="sm"
+                                                        className={cn(
+                                                            "h-8 text-xs font-bold gap-1 px-3 text-white",
+                                                            isWaitingVerif 
+                                                                ? "bg-emerald-600 hover:bg-emerald-700" 
+                                                                : "bg-blue-600 hover:bg-blue-700"
+                                                        )}
+                                                        onClick={() => handleConfirm(order.id)}
+                                                        disabled={processingId === order.id}
+                                                    >
+                                                        {processingId === order.id ? (
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                        ) : (
+                                                            <CheckCircle className="h-3.5 w-3.5" />
+                                                        )}
+                                                        <span>{isWaitingVerif ? 'Verif' : 'Majukan'}</span>
+                                                    </Button>
+
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 text-xs font-bold text-rose-600 hover:bg-rose-50 px-2"
+                                                        onClick={() => handleCancel(order.id)}
+                                                        disabled={processingId === order.id}
+                                                    >
+                                                        <XCircle className="h-4 w-4" />
+                                                    </Button>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* Desktop Table View (hidden md:block) */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-xs text-left">
+                                <thead className="bg-slate-50/80 text-slate-500 uppercase text-[11px] font-bold border-b border-slate-100">
+                                    <tr>
+                                        <th className="px-5 py-3.5">No. Pesanan</th>
+                                        <th className="px-5 py-3.5">Pelanggan</th>
+                                        <th className="px-5 py-3.5">Tanggal</th>
+                                        <th className="px-5 py-3.5">Metode / Kurir</th>
+                                        <th className="px-5 py-3.5">Total Tagihan</th>
+                                        <th className="px-5 py-3.5">Status Cetak</th>
+                                        <th className="px-5 py-3.5 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {filteredOrders.map((order: any) => {
+                                        const statusMeta = ORDER_STATUS_LABELS[order.status] || { 
+                                            label: order.status, 
+                                            color: 'bg-slate-100 text-slate-800 border-slate-300' 
+                                        };
+                                        const isFinished = ['SELESAI', 'DIBATALKAN', 'COMPLETED', 'CANCELLED'].includes(order.status);
+                                        const isWaitingVerif = order.status === 'MENUNGGU_VERIFIKASI';
+
+                                        return (
+                                            <tr 
+                                                key={order.id} 
+                                                className="hover:bg-slate-50/70 transition-colors"
+                                            >
+                                                <td className="px-5 py-4 font-mono font-bold text-slate-900">
+                                                    {order.orderNo || `#${order.id.slice(0, 8).toUpperCase()}`}
+                                                </td>
+                                                <td className="px-5 py-4">
+                                                    <div className="font-bold text-slate-900">{order.user?.name || 'Pelanggan'}</div>
+                                                    <div className="text-[11px] text-slate-400 truncate max-w-[150px]">{order.user?.email}</div>
+                                                </td>
+                                                <td className="px-5 py-4 text-slate-600 whitespace-nowrap">
+                                                    {formatDate(order.createdAt)}
+                                                </td>
+                                                <td className="px-5 py-4 text-slate-600">
+                                                    <div className="font-semibold">{order.paymentMethod}</div>
+                                                    <div className="text-[10px] text-slate-400">{order.shippingMethod || 'Standard'}</div>
+                                                </td>
+                                                <td className="px-5 py-4 font-bold text-blue-600 whitespace-nowrap">
+                                                    {formatCurrency(order.totalAmount)}
+                                                </td>
+                                                <td className="px-5 py-4 whitespace-nowrap">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusMeta.color}`}>
+                                                        {statusMeta.label}
+                                                    </span>
+                                                </td>
+                                                <td className="px-5 py-4 text-right whitespace-nowrap">
+                                                    <div className="flex items-center justify-end gap-1.5">
+                                                        <Link href={`/admin/orders/${order.id}`}>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="icon" 
+                                                                className="h-8 w-8 rounded-lg text-blue-600 hover:bg-blue-50" 
+                                                                title="Lihat Detail Pesanan"
                                                             >
-                                                                <XCircle className="h-4 w-4" />
+                                                                <Eye className="h-4 w-4" />
                                                             </Button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
+                                                        </Link>
+
+                                                        {!isFinished && (
+                                                            <>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className={cn(
+                                                                        "h-8 w-8 rounded-lg",
+                                                                        isWaitingVerif 
+                                                                            ? "text-emerald-600 hover:bg-emerald-50" 
+                                                                            : "text-blue-600 hover:bg-blue-50"
+                                                                    )}
+                                                                    title={isWaitingVerif ? "Setujui Pembayaran" : "Majukan Tahap"}
+                                                                    onClick={() => handleConfirm(order.id)}
+                                                                    disabled={processingId === order.id}
+                                                                >
+                                                                    {processingId === order.id ? (
+                                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                                    ) : (
+                                                                        <CheckCircle className="h-4 w-4" />
+                                                                    )}
+                                                                </Button>
+
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-8 w-8 rounded-lg text-rose-600 hover:bg-rose-50"
+                                                                    title="Batalkan Pesanan"
+                                                                    onClick={() => handleCancel(order.id)}
+                                                                    disabled={processingId === order.id}
+                                                                >
+                                                                    <XCircle className="h-4 w-4" />
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                )}
                 )}
             </div>
         </div>

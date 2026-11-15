@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'api.qrserver.com',
       },
+      {
+        protocol: 'https',
+        hostname: '*.storage.*.aws.neon.tech',
+      },
     ],
   },
   /* config options here */

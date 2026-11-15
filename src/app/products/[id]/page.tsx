@@ -24,6 +24,7 @@ import { useCartStore } from '@/store/cartStore';
 import { toast } from 'sonner';
 import { Product } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
+import { DesignFilePreview } from '@/components/DesignFilePreview';
 
 export default function ProductDetailPage() {
     const { id } = useParams();
@@ -36,8 +37,8 @@ export default function ProductDetailPage() {
     const [width, setWidth] = useState<number>(2.0);  // meter
     const [height, setHeight] = useState<number>(1.0); // meter
 
-    const [file, setFile] = useState<File | null>(null);
     const [fileUrl, setFileUrl] = useState<string | null>(null);
+    const [uploadedFiles, setUploadedFiles] = useState<Array<{ url: string; name: string; size: number }>>([]);
     const [isUploading, setIsUploading] = useState(false);
     const [options, setOptions] = useState({
         size: 'A4',
@@ -83,21 +84,22 @@ export default function ProductDetailPage() {
     const totalPrice = unitPrice * quantity;
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0];
-        if (!selectedFile) return;
+        const rawFiles = Array.from(e.target.files || []);
+        if (rawFiles.length === 0) return;
 
-        // Validate file size (10MB)
-        if (selectedFile.size > 10 * 1024 * 1024) {
-            toast.error('File terlalu besar. Maksimal 10MB');
-            return;
+        // Validate file size (15MB per file)
+        for (const f of rawFiles) {
+            if (f.size > 15 * 1024 * 1024) {
+                toast.error(`Berkas "${f.name}" terlalu besar. Maksimal 15MB per file.`);
+                return;
+            }
         }
 
-        setFile(selectedFile);
         setIsUploading(true);
 
         try {
             const formData = new FormData();
-            formData.append('file', selectedFile);
+            rawFiles.forEach((f) => formData.append('files', f));
 
             const res = await fetch('/api/upload', {
                 method: 'POST',
@@ -107,24 +109,37 @@ export default function ProductDetailPage() {
             const data = await res.json();
 
             if (data.success) {
-                const url = data.data?.url || data.fileUrl || data.url;
-                setFileUrl(url);
-                toast.success('File desain berhasil diupload');
+                const incomingFiles: Array<{ url: string; name: string; size: number }> = 
+                    (data.files || data.data?.files || []).map((f: any) => ({
+                        url: f.url,
+                        name: f.filename || f.name,
+                        size: f.size
+                    }));
+
+                const finalFiles = incomingFiles.length > 0 ? incomingFiles : [
+                    { url: data.fileUrl || data.url, name: rawFiles[0].name, size: rawFiles[0].size }
+                ];
+
+                const updated = [...uploadedFiles, ...finalFiles];
+                setUploadedFiles(updated);
+                setFileUrl(updated.map(f => f.url).join(','));
+                toast.success(`${finalFiles.length} berkas desain berhasil diunggah!`);
             } else {
-                toast.error(data.error || 'Gagal upload file');
-                setFile(null);
+                toast.error(data.error || 'Gagal mengunggah berkas');
             }
         } catch (error) {
-            toast.error('Gagal upload file');
-            setFile(null);
+            toast.error('Gagal mengunggah berkas');
         } finally {
             setIsUploading(false);
+            e.target.value = '';
         }
     };
 
-    const removeFile = () => {
-        setFile(null);
-        setFileUrl(null);
+    const handleRemoveFile = (index: number) => {
+        const updated = uploadedFiles.filter((_, i) => i !== index);
+        setUploadedFiles(updated);
+        setFileUrl(updated.length > 0 ? updated.map(f => f.url).join(',') : null);
+        toast.info('Berkas dihapus');
     };
 
     const handleAddToCart = () => {
@@ -138,8 +153,9 @@ export default function ProductDetailPage() {
             quantity,
             {
                 ...options,
-                fileName: file?.name,
+                fileName: uploadedFiles.map(f => f.name).join(', '),
                 fileUrl: fileUrl,
+                files: uploadedFiles,
                 width: isM2 ? width : undefined,
                 height: isM2 ? height : undefined,
                 area: isM2 ? effectiveArea : undefined,
@@ -341,31 +357,58 @@ export default function ProductDetailPage() {
                                 </div>
                             )}
 
-                            {/* Upload Desain Siap Cetak */}
-                            <div className="space-y-1.5">
-                                <label className="block text-xs font-bold text-slate-700">Unggah Desain Siap Cetak</label>
-                                {file && fileUrl ? (
-                                    <div className="border border-emerald-300 bg-emerald-50 rounded-xl p-3.5 flex items-center justify-between">
-                                        <div className="flex items-center gap-2.5 truncate">
-                                            <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0" />
-                                            <div className="truncate text-left">
-                                                <p className="font-bold text-xs text-emerald-900 truncate">{file.name}</p>
-                                                <p className="text-[10px] text-emerald-600">{(file.size / 1024 / 1024).toFixed(2)} MB • Siap Dicetak</p>
-                                            </div>
+                            {/* Upload Desain Siap Cetak (Multi-File with Live Preview) */}
+                            <div className="space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                    <label className="block text-xs font-bold text-slate-700">
+                                        Unggah Desain Siap Cetak <span className="text-slate-400 font-normal">(Bisa banyak berkas)</span>
+                                    </label>
+                                    {uploadedFiles.length > 0 && (
+                                        <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                                            {uploadedFiles.length} Berkas Siap
+                                        </span>
+                                    )}
+                                </div>
+
+                                {uploadedFiles.length > 0 ? (
+                                    <div className="space-y-3">
+                                        <DesignFilePreview
+                                            fileUrl={uploadedFiles.map(f => f.url).join(',')}
+                                            title="Pratinjau Desain Siap Cetak"
+                                            showRemove={true}
+                                            onRemove={handleRemoveFile}
+                                        />
+
+                                        <div className="flex items-center gap-2 pt-1">
+                                            <label className="relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold cursor-pointer transition-colors shadow-2xs">
+                                                <Upload className="h-3.5 w-3.5" />
+                                                <span>+ Tambah Desain Lain</span>
+                                                <input
+                                                    type="file"
+                                                    multiple
+                                                    className="hidden"
+                                                    onChange={handleFileChange}
+                                                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                                    disabled={isUploading}
+                                                />
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setUploadedFiles([]);
+                                                    setFileUrl(null);
+                                                }}
+                                                className="text-[11px] text-red-600 hover:text-red-700 hover:underline px-2 font-medium"
+                                            >
+                                                Hapus Semua
+                                            </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={removeFile}
-                                            className="p-1 hover:bg-emerald-200 rounded-md transition-colors text-emerald-800"
-                                            title="Hapus file"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </button>
                                     </div>
                                 ) : (
-                                    <div className="border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl p-5 hover:bg-blue-50/30 transition-all text-center cursor-pointer relative">
+                                    <div className="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-6 hover:bg-blue-50/40 transition-all text-center cursor-pointer relative group bg-slate-50/50">
                                         <input
                                             type="file"
+                                            multiple
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                             onChange={handleFileChange}
                                             accept=".pdf,.jpg,.jpeg,.png,.webp"
@@ -373,15 +416,21 @@ export default function ProductDetailPage() {
                                         />
 
                                         {isUploading ? (
-                                            <div className="flex flex-col items-center text-blue-600 py-1">
-                                                <Loader2 className="h-6 w-6 mb-1 animate-spin" />
-                                                <span className="font-semibold text-xs">Mengunggah file desain...</span>
+                                            <div className="flex flex-col items-center text-blue-600 py-2">
+                                                <Loader2 className="h-7 w-7 mb-1.5 animate-spin" />
+                                                <span className="font-bold text-xs">Mengunggah file desain ke cloud...</span>
+                                                <span className="text-[10px] text-slate-400 mt-1">Mohon tunggu sebentar</span>
                                             </div>
                                         ) : (
                                             <div className="flex flex-col items-center text-slate-500 py-1">
-                                                <Upload className="h-6 w-6 mb-1.5 text-blue-600" />
-                                                <span className="font-bold text-xs text-slate-700">Pilih Berkas Desain Cetak</span>
-                                                <span className="text-[10px] text-slate-400 mt-0.5">Format PDF, JPG, PNG, atau WEBP (Maks. 10MB)</span>
+                                                <div className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform shadow-2xs">
+                                                    <Upload className="h-5 w-5" />
+                                                </div>
+                                                <span className="font-bold text-xs text-slate-800">Klik atau Tarik Berkas Desain ke Sini</span>
+                                                <span className="text-[10px] text-slate-400 mt-0.5">Dukung banyak file sekaligus (PDF, JPG, PNG, WEBP maks 15MB)</span>
+                                                <span className="mt-2 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-semibold">
+                                                    ✓ Pratinjau gambar langsung otomatis tampil
+                                                </span>
                                             </div>
                                         )}
                                     </div>

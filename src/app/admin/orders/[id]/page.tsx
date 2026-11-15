@@ -15,6 +15,7 @@ import { formatCurrency, formatDate, cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { ORDER_STATUS_LABELS } from '@/types';
 import { OrderStatusStepper } from '@/components/OrderStatusStepper';
+import { DesignFilePreview } from '@/components/DesignFilePreview';
 
 interface OrderDetail {
     id: string;
@@ -499,25 +500,14 @@ export default function AdminOrderDetailPage() {
                                         </div>
                                     </div>
 
-                                    {/* Customer Design File with Download Button */}
+                                    {/* Customer Design File with Interactive Preview & Download */}
                                     {item.fileUrl && (
-                                        <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 flex items-center justify-between text-xs">
-                                            <div className="flex items-center gap-2.5 truncate pr-2">
-                                                <FileImage className="h-5 w-5 text-blue-600 shrink-0" />
-                                                <div className="truncate">
-                                                    <p className="font-bold text-slate-900 truncate">File Desain Pelanggan</p>
-                                                    <p className="text-[10px] text-slate-500 truncate">{item.fileUrl.split('/').pop()}</p>
-                                                </div>
-                                            </div>
-                                            <a
-                                                href={item.fileUrl}
-                                                download
-                                                target="_blank"
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white font-bold text-[11px] hover:bg-blue-700 transition-colors shrink-0"
-                                            >
-                                                <Download className="h-3.5 w-3.5" />
-                                                Download Desain
-                                            </a>
+                                        <div className="pt-2 border-t border-slate-100">
+                                            <DesignFilePreview
+                                                fileUrl={item.fileUrl}
+                                                title="File Desain Pelanggan"
+                                                variant="compact"
+                                            />
                                         </div>
                                     )}
                                 </div>
