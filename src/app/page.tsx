@@ -14,7 +14,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('/api/products');
+        const response = await fetch('/api/products', { cache: 'no-store' });
         const data = await response.json();
         if (data.success && data.data) {
           // Take only first 4 for recommendation
