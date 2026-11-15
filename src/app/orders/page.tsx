@@ -1,121 +1,18 @@
 'use client';
 
-import { useOrders } from '@/hooks/useOrders';
-import Link from 'next/link';
-import { Package } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function OrderListPage() {
-    const { orders, isLoading, mutate } = useOrders();
+    const router = useRouter();
 
-    const createTestOrder = async () => {
-        try {
-            // 1. Get a random product to order
-            const productRes = await fetch('/api/products');
-            const productData = await productRes.json();
-
-            if (!productData.success || !productData.data || productData.data.length === 0) {
-                alert('Tidak ada produk tersedia untuk simulasi');
-                return;
-            }
-
-            // Pick random product
-            const randomProduct = productData.data[Math.floor(Math.random() * productData.data.length)];
-
-            // 2. Create order
-            await fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: 'user-demo',
-                    totalAmount: randomProduct.price,
-                    paymentMethod: 'QRIS',
-                    shippingAddress: 'Realtime Demo Address',
-                    shippingMethod: 'JNE',
-                    shippingCost: 10000,
-                    items: {
-                        create: [
-                            {
-                                quantity: 1,
-                                price: randomProduct.price,
-                                productId: randomProduct.id, // Connect to existing product
-                                options: { demo: true }
-                            }
-                        ]
-                    }
-                })
-            });
-            mutate(); // Trigger immediate refresh for better UX
-        } catch (e) {
-            console.error("Failed to create test order", e);
-        }
-    };
+    useEffect(() => {
+        router.replace('/my-orders');
+    }, [router]);
 
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-2xl font-bold">Riwayat Pesanan</h1>
-                <Button onClick={createTestOrder} variant="secondary">
-                    + Simulasi Pesanan Baru
-                </Button>
-            </div>
-
-            {isLoading ? (
-                <div className="space-y-4">
-                    {[1, 2].map(i => <div key={i} className="h-32 bg-gray-100 rounded-lg animate-pulse" />)}
-                </div>
-            ) : orders.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-lg border border-slate-200">
-                    <Package className="mx-auto h-12 w-12 text-slate-400 mb-4" />
-                    <h3 className="text-lg font-medium text-slate-900">Belum ada pesanan</h3>
-                    <p className="text-slate-500 mb-6">Mulai belanja sekarang untuk membuat pesanan.</p>
-                    <Link href="/products">
-                        <Button>Lihat Produk</Button>
-                    </Link>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    {orders.map((order) => (
-                        <div key={order.id} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:border-blue-300 transition-colors">
-                            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-semibold text-slate-900">
-                                            {order.items?.[0]?.product?.name || 'Produk'}
-                                        </span>
-                                        {order.items.length > 1 && (
-                                            <span className="text-xs text-slate-500">+{order.items.length - 1} produk lainnya</span>
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-slate-500">{formatDate(order.createdAt)} • {order.id}</p>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="text-right">
-                                        <p className="text-sm text-slate-500">Total Belanja</p>
-                                        <p className="font-bold text-slate-900">{formatCurrency(order.totalAmount)}</p>
-                                    </div>
-                                    <Badge variant="secondary" className="px-3 py-1 bg-slate-100 text-slate-800">
-                                        {order.status}
-                                    </Badge>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-                                <Link href={`/orders/${order.id}`}>
-                                    <Button variant="outline" size="sm">Lihat Detail</Button>
-                                </Link>
-                                {order.status === 'PENDING' && order.paymentMethod === 'QRIS' && (
-                                    <Link href={`/payment/${order.id}`}>
-                                        <Button size="sm">Bayar Sekarang</Button>
-                                    </Link>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+        <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
         </div>
     );
 }

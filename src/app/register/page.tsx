@@ -6,14 +6,14 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Printer, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 const registerSchema = z.object({
     name: z.string().min(3, 'Nama harus diisi minimal 3 karakter'),
-    email: z.string().email('Email tidak valid'),
+    email: z.string().email('Format email tidak valid'),
     password: z.string().min(6, 'Password minimal 6 karakter'),
     confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
@@ -49,7 +49,7 @@ export default function RegisterPage() {
             const result = await res.json();
 
             if (result.success) {
-                toast.success('Registrasi berhasil! Silakan masuk.');
+                toast.success('Pendaftaran berhasil! Silakan masuk ke akun Anda.');
                 router.push('/login');
             } else {
                 setError(result.error || 'Gagal mendaftar');
@@ -57,82 +57,93 @@ export default function RegisterPage() {
             }
         } catch (err) {
             console.error('Registration error:', err);
-            setError('Terjadi kesalahan pada server');
-            toast.error('Terjadi kesalahan pada server');
+            setError('Terjadi kendala pada server. Silakan coba beberapa saat lagi.');
+            toast.error('Terjadi kendala pada server');
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="flex min-h-[calc(100vh-200px)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-lg border border-slate-100">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-slate-900">
-                        Daftar Akun Baru
+        <div className="flex min-h-[calc(100vh-160px)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50/50">
+            <div className="w-full max-w-md space-y-6 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+                {/* Logo & Heading */}
+                <div className="text-center space-y-2">
+                    <Link href="/" className="inline-flex items-center gap-2 group">
+                        <div className="h-10 w-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs group-hover:bg-blue-700 transition-colors">
+                            <Printer className="h-5 w-5" />
+                        </div>
+                        <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                            PrintWere
+                        </span>
+                    </Link>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+                        Buat Akun Baru
                     </h2>
-                    <p className="mt-2 text-center text-sm text-slate-600">
-                        Sudah punya akun?{' '}
-                        <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                    <p className="text-xs text-slate-500">
+                        Sudah memiliki akun?{' '}
+                        <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-500 underline">
                             Masuk di sini
                         </Link>
                     </p>
                 </div>
 
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
+                <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
                     {error && (
-                        <div className="rounded-md bg-red-50 p-4 border border-red-200">
-                            <div className="flex">
-                                <AlertCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
-                                <div className="ml-3">
-                                    <h3 className="text-sm font-medium text-red-800">{error}</h3>
-                                </div>
-                            </div>
+                        <div className="rounded-xl bg-red-50 p-3.5 border border-red-200 flex items-center gap-2.5 text-xs text-red-700">
+                            <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
+                            <span>{error}</span>
                         </div>
                     )}
 
-                    <div className="space-y-4 rounded-md shadow-sm">
+                    <div className="space-y-3">
                         <Input
                             label="Nama Lengkap"
+                            placeholder="Contoh: Budi Santoso"
                             error={errors.name?.message}
                             autoComplete="name"
                             {...register('name')}
                         />
                         <Input
-                            label="Email Address"
+                            label="Alamat Email"
                             type="email"
+                            placeholder="nama@email.com"
                             error={errors.email?.message}
                             autoComplete="email"
                             {...register('email')}
                         />
                         <Input
-                            label="Password"
+                            label="Kata Sandi (Password)"
                             type="password"
+                            placeholder="Minimal 6 karakter"
                             error={errors.password?.message}
                             autoComplete="new-password"
                             {...register('password')}
                         />
                         <Input
-                            label="Konfirmasi Password"
+                            label="Konfirmasi Kata Sandi"
                             type="password"
+                            placeholder="Ulangi kata sandi"
                             error={errors.confirmPassword?.message}
                             autoComplete="new-password"
                             {...register('confirmPassword')}
                         />
                     </div>
 
-                    <div>
-                        <Button type="submit" className="w-full" disabled={isLoading}>
-                            {isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Mendaftar...
-                                </>
-                            ) : (
-                                'Daftar Sekarang'
-                            )}
-                        </Button>
-                    </div>
+                    <Button 
+                        type="submit" 
+                        className="w-full rounded-xl bg-blue-600 hover:bg-blue-700 text-white py-2.5 text-sm font-semibold shadow-xs" 
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Mendaftarkan Akun...
+                            </>
+                        ) : (
+                            'Daftar Sekarang'
+                        )}
+                    </Button>
                 </form>
             </div>
         </div>

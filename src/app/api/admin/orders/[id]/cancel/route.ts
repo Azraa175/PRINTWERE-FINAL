@@ -1,4 +1,3 @@
-
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
@@ -14,41 +13,65 @@ export async function PATCH(
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
+        const adminUser = await prisma.user.findUnique({
+            where: { email: session.user.email as string }
+        });
+
         const { id } = await params;
+        const body = await request.json().catch(() => ({}));
+        const reason = body.reason || '';
 
         const order = await prisma.order.findUnique({ where: { id } });
         if (!order) {
-            return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+            return NextResponse.json({ success: false, error: 'Pesanan tidak ditemukan' }, { status: 404 });
         }
 
         // Cannot cancel completed or already cancelled orders
-        if (order.status === 'COMPLETED') {
+        if (order.status === 'COMPLETED' || order.status === 'SELESAI') {
             return NextResponse.json({
                 success: false,
-                error: 'Cannot cancel a completed order'
+                error: 'Tidak dapat membatalkan pesanan yang sudah selesai'
             }, { status: 400 });
         }
 
-        if (order.status === 'CANCELLED') {
+        if (order.status === 'CANCELLED' || order.status === 'DIBATALKAN') {
             return NextResponse.json({
                 success: false,
-                error: 'Order is already cancelled'
+                error: 'Pesanan sudah dibatalkan sebelumnya'
             }, { status: 400 });
         }
 
-        const updatedOrder = await prisma.order.update({
-            where: { id },
-            data: { status: 'CANCELLED' }
+        const previousStatus = order.status;
+
+        const updatedOrder = await prisma.$transaction(async (tx) => {
+            const ord = await tx.order.update({
+                where: { id },
+                data: { status: 'DIBATALKAN' }
+            });
+
+            await tx.orderStatusLog.create({
+                data: {
+                    orderId: id,
+                    fromStatus: previousStatus,
+                    toStatus: 'DIBATALKAN',
+                    changedById: adminUser?.id,
+                    note: reason
+                        ? `Dibatalkan oleh Admin: ${reason}`
+                        : `Pesanan dibatalkan oleh ${adminUser?.name || 'Admin'}`
+                }
+            });
+
+            return ord;
         });
 
         return NextResponse.json({
             success: true,
             data: updatedOrder,
-            message: 'Order cancelled successfully'
+            message: 'Pesanan berhasil dibatalkan'
         });
 
     } catch (error) {
         console.error('Admin Order Cancel Error:', error);
-        return NextResponse.json({ success: false, error: 'Failed to cancel order' }, { status: 500 });
+        return NextResponse.json({ success: false, error: 'Gagal membatalkan pesanan' }, { status: 500 });
     }
 }

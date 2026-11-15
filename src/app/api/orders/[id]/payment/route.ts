@@ -23,8 +23,13 @@ export async function PATCH(
         }
 
         // Find order and check ownership
-        const order = await prisma.order.findUnique({
-            where: { id },
+        const order = await prisma.order.findFirst({
+            where: {
+                OR: [
+                    { id: id },
+                    { orderNo: id }
+                ]
+            },
             include: { user: true }
         });
 
@@ -36,13 +41,40 @@ export async function PATCH(
             return NextResponse.json({ success: false, error: 'Akses ditolak' }, { status: 403 });
         }
 
-        // Update order
-        const updatedOrder = await prisma.order.update({
-            where: { id },
-            data: {
-                paymentProof,
-                status: order.status === 'PENDING' ? 'CONFIRMED' : order.status
-            }
+        // Update order dan buat record Payment serta log riwayat
+        const previousStatus = order.status;
+        const newStatus = 'MENUNGGU_VERIFIKASI';
+
+        const updatedOrder = await prisma.$transaction(async (tx) => {
+            const ord = await tx.order.update({
+                where: { id: order.id },
+                data: {
+                    paymentProof,
+                    status: newStatus
+                }
+            });
+
+            await tx.payment.create({
+                data: {
+                    orderId: order.id,
+                    amount: order.totalAmount,
+                    method: order.paymentMethod || 'TRANSFER',
+                    proofUrl: paymentProof,
+                    status: 'MENUNGGU'
+                }
+            });
+
+            await tx.orderStatusLog.create({
+                data: {
+                    orderId: order.id,
+                    fromStatus: previousStatus,
+                    toStatus: newStatus,
+                    changedById: order.userId,
+                    note: 'Pelanggan telah mengunggah bukti pembayaran. Menunggu verifikasi admin.'
+                }
+            });
+
+            return ord;
         });
 
         return NextResponse.json({

@@ -85,14 +85,20 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Beberapa produk tidak ditemukan' }, { status: 400 });
         }
 
+        // Generate format nomor pesanan: PW-YYYYMMDD-XXXX
+        const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+        const orderNo = `PW-${todayStr}-${randomSuffix}`;
+
         // Use transaction for data consistency
         const order = await prisma.$transaction(async (tx) => {
             // Create order with items
             const newOrder = await tx.order.create({
                 data: {
+                    orderNo: orderNo,
                     userId: user.id,
                     totalAmount: totalAmount || 0,
-                    status: 'PENDING',
+                    status: 'MENUNGGU_PEMBAYARAN',
                     paymentMethod: paymentMethod,
                     shippingAddress: shippingAddress.trim(),
                     shippingMethod: shippingMethod || 'JNE',
@@ -102,9 +108,20 @@ export async function POST(request: Request) {
                             productId: item.productId,
                             quantity: Math.max(1, parseInt(item.quantity) || 1),
                             price: parseFloat(item.price) || 0,
+                            width: item.width ? parseFloat(item.width) : null,
+                            height: item.height ? parseFloat(item.height) : null,
                             fileUrl: item.fileUrl || null,
+                            notes: item.notes || null,
                             options: item.options ? JSON.stringify(item.options) : null
                         }))
+                    },
+                    statusLogs: {
+                        create: {
+                            fromStatus: 'BARU',
+                            toStatus: 'MENUNGGU_PEMBAYARAN',
+                            changedById: user.id,
+                            note: 'Pesanan baru dibuat oleh pelanggan, menunggu pembayaran'
+                        }
                     }
                 },
                 include: {

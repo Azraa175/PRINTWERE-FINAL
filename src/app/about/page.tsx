@@ -1,64 +1,83 @@
-import { MapPin, Printer, Clock, ShieldCheck, Upload, CreditCard, Truck, Search } from 'lucide-react';
-import Image from 'next/image';
+import { MapPin, Printer, Clock, ShieldCheck, Upload, CreditCard, Truck, Search, Phone, Mail, Award, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
 
 export default function About() {
     return (
-        <div className="bg-white">
+        <div className="bg-white space-y-16 py-8">
             {/* Hero Section */}
-            <section className="bg-slate-900 py-20 text-white">
-                <div className="container mx-auto px-4 text-center">
-                    <h1 className="mb-4 text-4xl font-bold md:text-5xl">Tentang Kami</h1>
-                    <p className="mx-auto max-w-2xl text-lg text-slate-300">
-                        Mitra percetakan terpercaya Anda untuk segala kebutuhan bisnis dan personal. Cepat, berkualitas, dan profesional.
+            <section className="container mx-auto px-4">
+                <div className="bg-slate-900 rounded-3xl p-8 sm:p-14 text-white text-center space-y-4 shadow-md">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                        <Printer className="h-3.5 w-3.5" /> Percetakan Digital Modern
+                    </span>
+                    <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
+                        Tentang PrintWere
+                    </h1>
+                    <p className="mx-auto max-w-2xl text-sm sm:text-base text-slate-300 leading-relaxed">
+                        Mitra percetakan terpercaya Anda untuk segala kebutuhan bisnis, komersial, promosi, dan personal. Cepat, berpresisi tinggi, dan profesional.
                     </p>
                 </div>
             </section>
 
             {/* Company Profile Section */}
-            <section className="py-16">
-                <div className="container mx-auto px-4">
-                    <div className="grid gap-12 md:grid-cols-2 items-center">
-                        <div className="space-y-6">
-                            <div className="inline-block rounded-full bg-blue-100 px-4 py-1.5 text-sm font-semibold text-blue-600">
-                                Profil Perusahaan
-                            </div>
-                            <h2 className="text-3xl font-bold text-gray-900">PrintWere by Fotocopy Ilham</h2>
-                            <p className="text-lg text-gray-600 leading-relaxed">
-                                Berlokasi strategis di <strong>Jl. Harapan Jaya, Kec. Sukarame, Kota Bandar Lampung</strong>, kami hadir untuk memenuhi kebutuhan cetak Anda dengan standar kualitas tinggi.
-                            </p>
-                            <p className="text-gray-600 leading-relaxed">
-                                Kami menggabungkan teknologi percetakan modern dengan pelayanan yang ramah dan responsif. Baik untuk kebutuhan mahasiswa, perkantoran, maupun UMKM, kami siap memberikan hasil terbaik.
-                            </p>
+            <section className="container mx-auto px-4">
+                <div className="grid gap-12 lg:grid-cols-2 items-center">
+                    <div className="space-y-6">
+                        <div className="inline-block rounded-xl bg-blue-50 border border-blue-200 px-3.5 py-1 text-xs font-bold text-blue-700">
+                            Profil Usaha
+                        </div>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">
+                            PrintWere by Fotocopy Ilham
+                        </h2>
+                        <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
+                            Berlokasi di <strong>Jl. Harapan Jaya, Kec. Sukarame, Kota Bandar Lampung</strong>, kami hadir untuk melayani kebutuhan cetak dokumen, merchandise, banner m², hingga kemasan dengan standar mutu terbaik.
+                        </p>
+                        <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
+                            Kami menggabungkan mesin cetak digital beresolusi tinggi dengan sistem pemesanan online real-time. Pesanan Anda dipantau langsung dari antrean cetak hingga siap diambil atau dikirim ke lokasi.
+                        </p>
 
-                            <div className="grid gap-6 sm:grid-cols-2 pt-4">
-                                <div className="flex items-start gap-4">
-                                    <div className="rounded-lg bg-blue-50 p-3 text-blue-600">
-                                        <ShieldCheck className="h-6 w-6" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900">Kualitas Terjamin</h3>
-                                        <p className="text-sm text-gray-600">Hasil cetak tajam dan material terbaik.</p>
-                                    </div>
+                        <div className="grid gap-4 sm:grid-cols-2 pt-2">
+                            <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                                <div className="rounded-xl bg-blue-100 p-2.5 text-blue-600 shrink-0">
+                                    <ShieldCheck className="h-5 w-5" />
                                 </div>
-                                <div className="flex items-start gap-4">
-                                    <div className="rounded-lg bg-blue-50 p-3 text-blue-600">
-                                        <Clock className="h-6 w-6" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900">Pengerjaan Cepat</h3>
-                                        <p className="text-sm text-gray-600">Tepat waktu sesuai deadline Anda.</p>
-                                    </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900 text-sm">Kualitas Terjamin</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">Warna tajam, bahan bermutu dan finishing presisi.</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                                <div className="rounded-xl bg-blue-100 p-2.5 text-blue-600 shrink-0">
+                                    <Clock className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900 text-sm">Pengerjaan Tepat Waktu</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">Antrean produksi terpantau langsung via sistem.</p>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div className="relative h-[400px] overflow-hidden rounded-2xl bg-slate-100 shadow-xl">
-                            {/* Placeholder for shop image */}
-                            <div className="absolute inset-0 flex items-center justify-center bg-slate-200 text-slate-400">
-                                <div className="text-center">
-                                    <MapPin className="mx-auto h-12 w-12 opacity-50 mb-2" />
-                                    <span className="font-semibold">Lokasi Workshop Kami</span>
-                                </div>
+                    <div className="relative h-[340px] sm:h-[400px] overflow-hidden rounded-3xl bg-slate-100 border border-slate-200 shadow-sm flex items-center justify-center p-8 text-center">
+                        <div className="space-y-3">
+                            <div className="h-16 w-16 rounded-2xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center mx-auto shadow-xs">
+                                <MapPin className="h-8 w-8" />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900">Workshop & Toko Fisik</h3>
+                            <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                                Fotocopy Ilham, Jl. Harapan Jaya, Kec. Sukarame, Kota Bandar Lampung, Lampung
+                            </p>
+                            <div className="pt-2 flex justify-center gap-2">
+                                <a 
+                                    href="https://maps.google.com" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition-colors"
+                                >
+                                    <MapPin className="h-3.5 w-3.5" />
+                                    Buka di Google Maps
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -66,57 +85,72 @@ export default function About() {
             </section>
 
             {/* How to Order Section */}
-            <section className="bg-slate-50 py-16">
+            <section className="bg-slate-50/70 py-16 border-y border-slate-200">
                 <div className="container mx-auto px-4">
-                    <div className="mb-12 text-center">
-                        <h2 className="text-3xl font-bold text-gray-900">Tata Cara Pemesanan</h2>
-                        <p className="mt-4 text-gray-600">Proses mudah dan praktis untuk mendapatkan hasil cetak yang Anda inginkan</p>
+                    <div className="mb-12 text-center space-y-2">
+                        <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                            Langkah Mudah
+                        </span>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
+                            Cara Pemesanan di PrintWere
+                        </h2>
+                        <p className="text-sm text-slate-500 max-w-md mx-auto">
+                            Hanya 4 langkah praktis untuk mencetak kebutuhan Anda secara online tanpa repot antre.
+                        </p>
                     </div>
 
-                    <div className="grid gap-8 md:grid-cols-4">
+                    <div className="grid gap-6 md:grid-cols-4">
                         {/* Step 1 */}
-                        <div className="relative rounded-xl bg-white p-8 shadow-sm transition-shadow hover:shadow-md text-center group">
-                            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
-                                <Search className="h-8 w-8" />
+                        <div className="rounded-2xl bg-white p-6 shadow-xs border border-slate-200 text-center space-y-3">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-200">
+                                <Search className="h-6 w-6" />
                             </div>
-                            <h3 className="mb-3 text-xl font-semibold text-gray-900">1. Pilih Produk</h3>
-                            <p className="text-gray-600 text-sm">
-                                Cari dan pilih produk percetakan yang Anda butuhkan di halaman Produk kami.
+                            <h3 className="text-base font-bold text-slate-900">1. Pilih Produk</h3>
+                            <p className="text-xs text-slate-500 leading-relaxed">
+                                Tentukan produk cetak, spesifikasi bahan, ukuran custom (m²), dan varian finishing.
                             </p>
                         </div>
 
                         {/* Step 2 */}
-                        <div className="relative rounded-xl bg-white p-8 shadow-sm transition-shadow hover:shadow-md text-center group">
-                            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
-                                <Upload className="h-8 w-8" />
+                        <div className="rounded-2xl bg-white p-6 shadow-xs border border-slate-200 text-center space-y-3">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-50 text-purple-600 border border-purple-200">
+                                <Upload className="h-6 w-6" />
                             </div>
-                            <h3 className="mb-3 text-xl font-semibold text-gray-900">2. Upload Desain</h3>
-                            <p className="text-gray-600 text-sm">
-                                Unggah file desain siap cetak Anda atau konsultasikan kebutuhan desain dengan kami.
+                            <h3 className="text-base font-bold text-slate-900">2. Unggah Desain</h3>
+                            <p className="text-xs text-slate-500 leading-relaxed">
+                                Upload file PDF, JPG, PNG, atau WebP siap cetak dan tambahkan catatan cetak khusus.
                             </p>
                         </div>
 
                         {/* Step 3 */}
-                        <div className="relative rounded-xl bg-white p-8 shadow-sm transition-shadow hover:shadow-md text-center group">
-                            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
-                                <CreditCard className="h-8 w-8" />
+                        <div className="rounded-2xl bg-white p-6 shadow-xs border border-slate-200 text-center space-y-3">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 border border-amber-200">
+                                <CreditCard className="h-6 w-6" />
                             </div>
-                            <h3 className="mb-3 text-xl font-semibold text-gray-900">3. Pembayaran</h3>
-                            <p className="text-gray-600 text-sm">
-                                Lakukan pembayaran dengan metode yang aman dan nyaman (Transfer / E-Wallet).
+                            <h3 className="text-base font-bold text-slate-900">3. Bayar & Verifikasi</h3>
+                            <p className="text-xs text-slate-500 leading-relaxed">
+                                Bayar via QRIS otomatis atau transfer bank, lalu unggah bukti bayar untuk diverifikasi.
                             </p>
                         </div>
 
                         {/* Step 4 */}
-                        <div className="relative rounded-xl bg-white p-8 shadow-sm transition-shadow hover:shadow-md text-center group">
-                            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
-                                <Truck className="h-8 w-8" />
+                        <div className="rounded-2xl bg-white p-6 shadow-xs border border-slate-200 text-center space-y-3">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200">
+                                <Truck className="h-6 w-6" />
                             </div>
-                            <h3 className="mb-3 text-xl font-semibold text-gray-900">4. Selesai</h3>
-                            <p className="text-gray-600 text-sm">
-                                Pesanan diproses dan akan segera dikirim ke alamat Anda atau dapat diambil di lokasi.
+                            <h3 className="text-base font-bold text-slate-900">4. Cetak & Kirim</h3>
+                            <p className="text-xs text-slate-500 leading-relaxed">
+                                Pantau pesanan di antrean cetak hingga selesai dan siap Anda ambil atau dikirimkan.
                             </p>
                         </div>
+                    </div>
+
+                    <div className="text-center mt-10">
+                        <Link href="/products">
+                            <Button className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 text-sm font-semibold shadow-xs">
+                                Mulai Pesan Sekarang
+                            </Button>
+                        </Link>
                     </div>
                 </div>
             </section>

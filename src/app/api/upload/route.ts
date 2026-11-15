@@ -19,9 +19,9 @@ export async function POST(request: Request) {
         }
 
         // Validate file type
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'];
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
         if (!allowedTypes.includes(file.type)) {
-            return NextResponse.json({ success: false, error: 'Invalid file type. Allowed: JPG, PNG, GIF, PDF' }, { status: 400 });
+            return NextResponse.json({ success: false, error: 'Tipe file tidak valid. Format yang diperbolehkan: JPG, PNG, WEBP, PDF' }, { status: 400 });
         }
 
         // Validate file size (10MB max)
@@ -49,8 +49,11 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             success: true,
+            fileUrl: fileUrl,
+            url: fileUrl,
             data: {
                 url: fileUrl,
+                fileUrl: fileUrl,
                 filename: file.name,
                 size: file.size,
                 type: file.type

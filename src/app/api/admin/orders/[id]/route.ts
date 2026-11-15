@@ -15,14 +15,20 @@ export async function GET(
         }
 
         const { id } = await params;
-        const order = await prisma.order.findUnique({
-            where: { id },
+        const order = await prisma.order.findFirst({
+            where: {
+                OR: [
+                    { id: id },
+                    { orderNo: id }
+                ]
+            },
             include: {
                 user: {
                     select: {
                         id: true,
                         name: true,
                         email: true,
+                        phone: true,
                         avatar: true,
                         status: true,
                         createdAt: true
@@ -32,6 +38,25 @@ export async function GET(
                     include: {
                         product: true
                     }
+                },
+                payments: {
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        verifiedBy: {
+                            select: { id: true, name: true }
+                        }
+                    }
+                },
+                statusLogs: {
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        changedBy: {
+                            select: { id: true, name: true, role: true }
+                        }
+                    }
+                },
+                assignedStaff: {
+                    select: { id: true, name: true, phone: true }
                 }
             }
         });

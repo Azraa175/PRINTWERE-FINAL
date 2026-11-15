@@ -3,73 +3,126 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Enum removed for SQLite compatibility
-// enum UserRole { ADMIN, CUSTOMER }
-// enum OrderStatus { ... }
-// enum PaymentMethod { ... }
-
+// User Model: Admin, Staff (Karyawan), Customer (Pelanggan)
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String?
-  role         String   @default("CUSTOMER")
-  status       String   @default("ACTIVE") // ACTIVE, BANNED
-  avatar    String?
-  phone     String?
-  bio       String?
-  gender    String?   // MALE, FEMALE, OTHER
-  birthDate String?   // ISO date string for SQLite
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  orders    Order[]
+  id               String           @id @default(cuid())
+  name             String
+  email            String           @unique
+  passwordHash     String?
+  role             String           @default("CUSTOMER") // "ADMIN" | "STAFF" | "CUSTOMER"
+  status           String           @default("ACTIVE")   // "ACTIVE" | "BANNED"
+  avatar           String?
+  phone            String?
+  bio              String?
+  gender           String?          // MALE, FEMALE, OTHER
+  birthDate        String?          // ISO date string for SQLite
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  orders           Order[]          @relation("CustomerOrders")
+  assignedJobs     Order[]          @relation("StaffAssignedOrders")
+  statusLogs       OrderStatusLog[]
+  paymentsVerified Payment[]        @relation("AdminPaymentVerifications")
 }
 
+// Product Model: Mendukung satuan (UNIT), meter persegi (M2 / banner), dan paket (PACKAGE)
 model Product {
   id            String      @id @default(cuid())
   name          String
   description   String
-  price         Float
+  price         Float       // Base price
+  priceType     String      @default("UNIT") // "UNIT" | "M2" | "PACKAGE"
+  minArea       Float?      @default(1.0)    // Minimal meter persegi jika M2
+  estDays       Int         @default(1)      // Estimasi pengerjaan (hari)
   image         String
   category      String
-  stock         Int
+  stock         Int         @default(999)
   rating        Float?      @default(0)
   isRecommended Boolean     @default(false)
+  isActive      Boolean     @default(true)
   sizes         String?     // Comma separated sizes
-  finishing     String?     // Comma separated: Laminasi,Doff,Glossy
+  finishing     String?     // Comma separated finishing options
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   orderItems    OrderItem[]
 }
 
+// Order Model: Alur lengkap pesanan percetakan
 model Order {
-  id              String        @id @default(cuid())
+  id              String           @id @default(cuid())
+  orderNo         String?          @unique // Format: MC-20261110-0001
   userId          String
-  user            User          @relation(fields: [userId], references: [id])
+  user            User             @relation("CustomerOrders", fields: [userId], references: [id])
   items           OrderItem[]
   totalAmount     Float
-  status          String        @default("PENDING") // Was OrderStatus
-  paymentMethod   String        // Was PaymentMethod
-  paymentProof    String?
+  status          String           @default("MENUNGGU_PEMBAYARAN")
+  // Status: MENUNGGU_PEMBAYARAN, MENUNGGU_VERIFIKASI, PEMBAYARAN_DITOLAK,
+  // ANTRIAN_PRODUKSI, SEDANG_DICETAK, FINISHING, SIAP_DIAMBIL, DIKIRIM, SELESAI, DIBATALKAN
+
+  paymentMethod   String           // Transfer BCA, QRIS, COD, dll
+  paymentProof    String?          // URL bukti pembayaran
+  deliveryType    String           @default("PICKUP") // "PICKUP" | "DELIVERY"
   shippingAddress String
   shippingMethod  String
-  shippingCost    Float
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  shippingCost    Float            @default(0)
+  note            String?
+  dueDate         DateTime?
+
+  assignedStaffId String?
+  assignedStaff   User?            @relation("StaffAssignedOrders", fields: [assignedStaffId], references: [id])
+
+  payments        Payment[]
+  statusLogs      OrderStatusLog[]
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
+// OrderItem: Detail item pesanan (dengan opsi dimensi panjang x lebar untuk banner M2)
 model OrderItem {
-  id        String  @id @default(cuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id])
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  quantity  Int
-  price     Float
-  fileUrl   String?
-  options   String?     // Stored as JSON string
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  quantity    Int
+  price       Float
+  width       Float?   // Panjang/lebar dalam meter (khusus M2)
+  height      Float?   // Tinggi dalam meter (khusus M2)
+  fileUrl     String?  // File desain yang diunggah pelanggan
+  notes       String?  // Catatan desain khusus
+  options     String?  // JSON string opsi bahan / finishing terpilih
+}
+
+// Payment: Riwayat dan verifikasi pembayaran
+model Payment {
+  id           String    @id @default(cuid())
+  orderId      String
+  order        Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  amount       Float
+  method       String
+  proofUrl     String
+  status       String    @default("MENUNGGU") // "MENUNGGU" | "DISETUJUI" | "DITOLAK"
+  rejectReason String?
+  verifiedById String?
+  verifiedBy   User?     @relation("AdminPaymentVerifications", fields: [verifiedById], references: [id])
+  verifiedAt   DateTime?
+  createdAt    DateTime  @default(now())
+}
+
+// OrderStatusLog: Riwayat perubahan status pesanan untuk transparansi & audit
+model OrderStatusLog {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus  String
+  toStatus    String
+  changedById String?
+  changedBy   User?    @relation(fields: [changedById], references: [id])
+  note        String?
+  createdAt   DateTime @default(now())
 }

@@ -49,7 +49,7 @@ export default function HomePage() {
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link href="/products">
-                <Button size="lg" className="rounded-full px-8 text-base">
+                <Button size="lg" className="rounded-xl px-8 text-base font-semibold shadow-md">
                   Pesan Sekarang
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -103,7 +103,7 @@ export default function HomePage() {
           {isLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-[350px] rounded-lg bg-gray-200 animate-pulse" />
+                <div key={i} className="h-[350px] rounded-2xl bg-slate-200 animate-pulse" />
               ))}
             </div>
           ) : (
@@ -126,7 +126,7 @@ export default function HomePage() {
           </p>
           <div className="flex justify-center gap-4">
             <Link href="/products">
-              <Button size="lg" variant="secondary" className="rounded-full">
+              <Button size="lg" variant="secondary" className="rounded-xl font-semibold">
                 Mulai Pesanan
               </Button>
             </Link>

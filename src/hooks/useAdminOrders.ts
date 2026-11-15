@@ -31,9 +31,13 @@ export function useAdminStats() {
         stats: data?.data || {
             totalOrders: 0,
             pendingOrders: 0,
+            waitingVerification: 0,
+            inProductionOrders: 0,
+            completedOrders: 0,
             paidOrders: 0,
             totalRevenue: 0,
-            totalUsers: 0
+            totalUsers: 0,
+            totalStaff: 0
         },
         isLoading,
         isError: error || (data && !data.success),

@@ -2,7 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, Mail, Phone, Calendar, Edit2, LogOut, Loader2, Save } from 'lucide-react';
+import { 
+    User, 
+    Mail, 
+    Phone, 
+    Calendar, 
+    Edit2, 
+    LogOut, 
+    Loader2, 
+    Save, 
+    Shield, 
+    Printer, 
+    ShoppingBag, 
+    Clock, 
+    Check 
+} from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
@@ -99,7 +113,7 @@ export default function ProfilePage() {
         try {
             await signOut({ redirect: false });
             storeLogout();
-            toast.success('Berhasil logout');
+            toast.success('Berhasil keluar dari akun');
             router.push('/login');
         } catch (error) {
             toast.error('Gagal logout');
@@ -108,101 +122,139 @@ export default function ProfilePage() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <p className="text-xs text-slate-400">Memuat profil Anda...</p>
             </div>
         );
     }
 
     if (!profile) {
         return (
-            <div className="container mx-auto px-4 py-8 text-center">
-                <p className="text-slate-500">Profil tidak ditemukan</p>
+            <div className="container mx-auto px-4 py-16 text-center">
+                <p className="text-slate-500">Profil pengguna tidak ditemukan.</p>
             </div>
         );
     }
 
-    return (
-        <div className="container mx-auto px-4 py-8 max-w-2xl">
-            <h1 className="text-2xl font-bold text-slate-900 mb-6">Profil Saya</h1>
+    const isAdmin = profile.role === 'ADMIN';
+    const isStaff = profile.role === 'STAFF';
 
-            <div className="bg-white rounded-lg border p-6 space-y-6">
-                {/* Avatar & Name Header */}
-                <div className="flex items-center gap-4 pb-6 border-b">
-                    <div className="h-20 w-20 bg-blue-100 rounded-full flex items-center justify-center">
+    return (
+        <div className="container mx-auto px-4 py-10 max-w-2xl space-y-6">
+            <div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Profil Saya</h1>
+                <p className="text-sm text-slate-500 mt-1">
+                    Informasi akun pribadi dan riwayat aktivitas di PrintWere.
+                </p>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+                {/* Avatar & Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 pb-6 border-b border-slate-100">
+                    <div className="h-20 w-20 bg-blue-50 text-blue-600 rounded-2xl border border-blue-200 flex items-center justify-center font-bold text-2xl shrink-0 shadow-xs">
                         {profile.avatar ? (
-                            <img src={profile.avatar} alt="" className="h-20 w-20 rounded-full object-cover" />
+                            <img src={profile.avatar} alt={profile.name} className="h-full w-full rounded-2xl object-cover" />
                         ) : (
-                            <User className="h-10 w-10 text-blue-600" />
+                            profile.name.charAt(0).toUpperCase()
                         )}
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900">{profile.name}</h2>
-                        <p className="text-slate-500">{profile.email}</p>
-                        <Badge className="mt-1">{profile.role}</Badge>
+                        <h2 className="text-xl font-bold text-slate-900 leading-tight">{profile.name}</h2>
+                        <p className="text-sm text-slate-500 font-mono mt-0.5">{profile.email}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                            {isAdmin ? (
+                                <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs gap-1">
+                                    <Shield className="h-3 w-3" /> Administrator
+                                </Badge>
+                            ) : isStaff ? (
+                                <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-xs gap-1">
+                                    <Printer className="h-3 w-3" /> Staf Produksi
+                                </Badge>
+                            ) : (
+                                <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-xs gap-1">
+                                    <User className="h-3 w-3" /> Pelanggan
+                                </Badge>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                {/* Edit Form */}
+                {/* Form Fields */}
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>
+                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Nama Lengkap
+                        </label>
                         {isEditing ? (
                             <Input
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="Nama lengkap Anda"
                             />
                         ) : (
-                            <p className="text-slate-900">{profile.name}</p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                        <p className="text-slate-500 flex items-center gap-2">
-                            <Mail className="h-4 w-4" />
-                            {profile.email}
-                            <span className="text-xs text-slate-400">(tidak dapat diubah)</span>
-                        </p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Nomor HP</label>
-                        {isEditing ? (
-                            <Input
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                placeholder="081234567890"
-                            />
-                        ) : (
-                            <p className="text-slate-900 flex items-center gap-2">
-                                <Phone className="h-4 w-4" />
-                                {profile.phone || '-'}
+                            <p className="text-sm font-semibold text-slate-900 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                {profile.name}
                             </p>
                         )}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Bio</label>
+                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Alamat Email
+                        </label>
+                        <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+                            <span className="font-mono text-xs">{profile.email}</span>
+                            <span className="text-[11px] text-slate-400 ml-auto">(permanen)</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Nomor WhatsApp / HP
+                        </label>
                         {isEditing ? (
-                            <textarea
-                                className="w-full border rounded-md px-3 py-2 text-sm"
-                                value={formData.bio}
-                                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                                placeholder="Tentang kamu..."
-                                rows={3}
+                            <Input
+                                value={formData.phone}
+                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                placeholder="Contoh: 081234567890"
                             />
                         ) : (
-                            <p className="text-slate-900">{profile.bio || '-'}</p>
+                            <div className="flex items-center gap-2 text-sm text-slate-900 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                                <span className="font-mono text-xs">{profile.phone || '-'}</span>
+                            </div>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Bio / Catatan
+                        </label>
+                        {isEditing ? (
+                            <textarea
+                                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                value={formData.bio}
+                                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                                placeholder="Tuliskan info singkat mengenai Anda..."
+                                rows={2}
+                            />
+                        ) : (
+                            <p className="text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                {profile.bio || 'Belum ada bio'}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Kelamin</label>
+                            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Jenis Kelamin
+                            </label>
                             {isEditing ? (
                                 <select
-                                    className="w-full border rounded-md px-3 py-2 text-sm"
+                                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                                     value={formData.gender}
                                     onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                                 >
@@ -212,14 +264,16 @@ export default function ProfilePage() {
                                     <option value="OTHER">Lainnya</option>
                                 </select>
                             ) : (
-                                <p className="text-slate-900">
+                                <p className="text-sm text-slate-900 bg-slate-50 p-3 rounded-xl border border-slate-100">
                                     {profile.gender === 'MALE' ? 'Laki-laki' : profile.gender === 'FEMALE' ? 'Perempuan' : profile.gender || '-'}
                                 </p>
                             )}
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Lahir</label>
+                            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                                Tanggal Lahir
+                            </label>
                             {isEditing ? (
                                 <Input
                                     type="date"
@@ -227,42 +281,76 @@ export default function ProfilePage() {
                                     onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
                                 />
                             ) : (
-                                <p className="text-slate-900 flex items-center gap-2">
-                                    <Calendar className="h-4 w-4" />
-                                    {profile.birthDate || '-'}
-                                </p>
+                                <div className="flex items-center gap-2 text-sm text-slate-900 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                    <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+                                    <span>{profile.birthDate || '-'}</span>
+                                </div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex justify-between pt-6 border-t">
+                {/* Action Buttons */}
+                <div className="flex items-center justify-between pt-6 border-t border-slate-100">
                     {isEditing ? (
-                        <div className="flex gap-2">
-                            <Button variant="outline" onClick={() => setIsEditing(false)}>Batal</Button>
-                            <Button onClick={handleSave} disabled={isSaving}>
-                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                                Simpan
+                        <div className="flex items-center gap-2">
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setIsEditing(false)}
+                                className="rounded-xl border-slate-200 text-xs"
+                            >
+                                Batal
+                            </Button>
+                            <Button 
+                                size="sm"
+                                onClick={handleSave} 
+                                disabled={isSaving}
+                                className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5 shadow-xs"
+                            >
+                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                Simpan Profil
                             </Button>
                         </div>
                     ) : (
-                        <Button onClick={() => setIsEditing(true)}>
-                            <Edit2 className="h-4 w-4 mr-2" />
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setIsEditing(true)}
+                            className="rounded-xl border-slate-200 text-xs gap-1.5 text-slate-700 hover:bg-slate-50"
+                        >
+                            <Edit2 className="h-3.5 w-3.5" />
                             Edit Profil
                         </Button>
                     )}
 
-                    <Button variant="destructive" onClick={handleLogout}>
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Logout
+                    <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleLogout}
+                        className="rounded-xl text-xs gap-1.5 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                    >
+                        <LogOut className="h-3.5 w-3.5" />
+                        Keluar Akun
                     </Button>
                 </div>
 
-                {/* Stats */}
-                <div className="pt-6 border-t text-sm text-slate-500">
-                    <p>Bergabung sejak: {formatDate(profile.createdAt)}</p>
-                    <p>Total pesanan: {profile._count?.orders || 0}</p>
+                {/* Activity Stats Summary */}
+                <div className="pt-4 border-t border-slate-100 grid grid-cols-2 gap-3 text-xs text-slate-500">
+                    <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
+                        <Clock className="h-4 w-4 text-slate-400" />
+                        <div>
+                            <span className="block text-[10px] text-slate-400">Bergabung</span>
+                            <span className="font-semibold text-slate-700">{formatDate(profile.createdAt)}</span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
+                        <ShoppingBag className="h-4 w-4 text-slate-400" />
+                        <div>
+                            <span className="block text-[10px] text-slate-400">Total Pesanan</span>
+                            <span className="font-semibold text-slate-700">{profile._count?.orders || 0} kali</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

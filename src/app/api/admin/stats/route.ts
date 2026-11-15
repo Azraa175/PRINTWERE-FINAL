@@ -1,4 +1,3 @@
-
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
@@ -10,15 +9,42 @@ export async function GET() {
             return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
         }
 
-        const [totalOrders, pendingOrders, paidOrders, totalRevenue, totalUsers] = await Promise.all([
+        const [
+            totalOrders,
+            pendingOrders,
+            waitingVerification,
+            inProductionOrders,
+            completedOrders,
+            totalRevenue,
+            totalUsers,
+            totalStaff
+        ] = await Promise.all([
             prisma.order.count(),
-            prisma.order.count({ where: { status: 'PENDING' } }),
-            prisma.order.count({ where: { status: { in: ['CONFIRMED', 'PROCESSING', 'READY', 'COMPLETED'] } } }),
+            prisma.order.count({
+                where: { status: { in: ['MENUNGGU_PEMBAYARAN', 'PENDING'] } }
+            }),
+            prisma.order.count({
+                where: { status: { in: ['MENUNGGU_VERIFIKASI'] } }
+            }),
+            prisma.order.count({
+                where: {
+                    status: {
+                        in: [
+                            'ANTRIAN_PRODUKSI', 'SEDANG_DICETAK', 'FINISHING', 'SIAP_DIAMBIL', 'DIKIRIM',
+                            'CONFIRMED', 'PROCESSING', 'READY'
+                        ]
+                    }
+                }
+            }),
+            prisma.order.count({
+                where: { status: { in: ['SELESAI', 'COMPLETED'] } }
+            }),
             prisma.order.aggregate({
                 _sum: { totalAmount: true },
-                where: { status: { not: 'CANCELLED' } }
+                where: { status: { notIn: ['CANCELLED', 'DIBATALKAN', 'PEMBAYARAN_DITOLAK'] } }
             }),
-            prisma.user.count({ where: { role: 'CUSTOMER' } })
+            prisma.user.count({ where: { role: 'CUSTOMER' } }),
+            prisma.user.count({ where: { role: 'STAFF' } })
         ]);
 
         return NextResponse.json({
@@ -26,9 +52,13 @@ export async function GET() {
             data: {
                 totalOrders,
                 pendingOrders,
-                paidOrders,
+                waitingVerification,
+                inProductionOrders,
+                completedOrders,
+                paidOrders: inProductionOrders + completedOrders, // Backward compat
                 totalRevenue: totalRevenue._sum.totalAmount || 0,
-                totalUsers
+                totalUsers,
+                totalStaff
             }
         });
     } catch (error) {

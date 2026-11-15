@@ -46,8 +46,22 @@ export async function GET(request: Request) {
                                 name: true,
                                 image: true,
                                 price: true,
+                                priceType: true,
                                 category: true
                             }
+                        }
+                    }
+                },
+                payments: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1
+                },
+                statusLogs: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 5,
+                    include: {
+                        changedBy: {
+                            select: { id: true, name: true, role: true }
                         }
                     }
                 }
