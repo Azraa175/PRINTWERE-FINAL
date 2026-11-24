@@ -86,6 +86,7 @@ export default function CheckoutPage() {
                         options: item.options
                     })),
                     paymentMethod: data.paymentMethod,
+                    phone: data.phone,
                     shippingAddress: `${data.name} (${data.phone})\n${data.address}`,
                     shippingMethod: data.shippingMethod,
                     shippingCost: shippingCost

@@ -7,7 +7,7 @@ import {
     ArrowLeft, Package, User, MapPin, CreditCard, Calendar,
     CheckCircle, XCircle, Loader2, FileImage, Download,
     Clock, Truck, Phone, Mail, Hash, Receipt, Eye, AlertCircle,
-    Printer, Scissors, ShieldCheck, Check
+    Printer, Scissors, ShieldCheck, Check, Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -206,6 +206,29 @@ export default function AdminOrderDetailPage() {
         }
     };
 
+    const [isSendingWA, setIsSendingWA] = useState(false);
+    const handleSendInvoiceWA = async () => {
+        if (!order) return;
+        setIsSendingWA(true);
+        try {
+            const res = await fetch(`/api/orders/${order.id}/send-invoice`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success(data.message || 'Invoice berhasil dikirim ke WhatsApp pelanggan!');
+            } else {
+                toast.error(data.error || 'Gagal mengirim invoice ke WhatsApp');
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Gagal menghubungi server');
+        } finally {
+            setIsSendingWA(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center py-24 text-slate-400">
@@ -268,6 +291,20 @@ export default function AdminOrderDetailPage() {
 
                 {/* Primary State Action Buttons */}
                 <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 rounded-xl border-emerald-300 text-xs font-bold text-emerald-700 flex items-center gap-1.5 hover:bg-emerald-50 bg-white"
+                        onClick={handleSendInvoiceWA}
+                        disabled={isSendingWA}
+                    >
+                        {isSendingWA ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                        ) : (
+                            <Send className="h-3.5 w-3.5 text-emerald-600" />
+                        )}
+                        Kirim Invoice ke WA
+                    </Button>
                     <Link href={`/orders/${order.id}/invoice`} target="_blank">
                         <Button variant="outline" size="sm" className="h-9 rounded-xl border-slate-300 text-xs font-bold text-slate-700 flex items-center gap-1.5 hover:bg-slate-50">
                             <Printer className="h-3.5 w-3.5 text-blue-600" />

@@ -1,4 +1,3 @@
-
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
@@ -10,7 +9,7 @@ export async function GET() {
             orderBy: { createdAt: 'desc' },
             include: {
                 user: {
-                    select: { id: true, name: true, email: true, status: true }
+                    select: { id: true, name: true, email: true, phone: true, status: true }
                 },
                 items: {
                     include: {
@@ -60,7 +59,15 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { items, totalAmount, paymentMethod, shippingAddress, shippingMethod, shippingCost } = body;
+        const { items, totalAmount, paymentMethod, shippingAddress, shippingMethod, shippingCost, phone } = body;
+
+        // Update nomor telepon user jika disertakan dan valid
+        if (phone && phone.trim().length >= 8) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { phone: phone.trim() }
+            }).catch(err => console.log('Update user phone error:', err));
+        }
 
         // Validate items
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -68,11 +75,11 @@ export async function POST(request: Request) {
         }
 
         // Validate required fields
-        if (!shippingAddress || shippingAddress.trim().length < 10) {
+        if (!shippingAddress || shippingAddress.trim().length < 5) {
             return NextResponse.json({ success: false, error: 'Alamat pengiriman tidak valid' }, { status: 400 });
         }
 
-        if (!paymentMethod || !['COD', 'QRIS'].includes(paymentMethod)) {
+        if (!paymentMethod || !['COD', 'QRIS', 'TRANSFER'].includes(paymentMethod)) {
             return NextResponse.json({ success: false, error: 'Metode pembayaran tidak valid' }, { status: 400 });
         }
 
@@ -139,7 +146,8 @@ export async function POST(request: Request) {
         notifyOrderStatusChange({
             orderId: order.id,
             newStatus: 'MENUNGGU_PEMBAYARAN',
-            note: 'Pesanan baru dibuat, silakan lakukan pembayaran'
+            note: 'Pesanan baru dibuat, silakan lakukan pembayaran',
+            customRecipient: phone ? { phone: phone.trim() } : undefined
         }).catch(err => console.error('[Order Create Notification Error]:', err));
 
         return NextResponse.json({ success: true, data: order }, { status: 201 });

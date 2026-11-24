@@ -1,19 +1,22 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
     Printer, ArrowLeft, Share2, CheckCircle2, Clock, AlertTriangle, 
-    FileText, Phone, Mail, MapPin, Loader2, Sparkles
+    FileText, Phone, Mail, MapPin, Loader2, Sparkles, Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { useOrder } from '@/hooks/useOrders';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function OrderInvoicePage() {
     const { id } = useParams();
     const router = useRouter();
     const { order, isLoading } = useOrder(id as string);
+    const [isSendingWA, setIsSendingWA] = useState(false);
 
     if (isLoading) {
         return (
@@ -58,9 +61,33 @@ export default function OrderInvoicePage() {
         window.print();
     };
 
+    const handleSendViaFonnte = async () => {
+        if (!order) return;
+        setIsSendingWA(true);
+        try {
+            const res = await fetch(`/api/orders/${order.id}/send-invoice`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success(data.message || 'Invoice berhasil dikirim ke WhatsApp!');
+            } else {
+                toast.error(data.error || 'Gagal mengirim invoice ke WhatsApp');
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Terjadi gangguan jaringan');
+        } finally {
+            setIsSendingWA(false);
+        }
+    };
+
     const handleShareWA = () => {
         const text = `Halo, berikut adalah tautan invoice pemesanan PrintWere Anda untuk No. Pesanan ${order.orderNo || order.id}:\n${window.location.href}\nTotal: ${formatCurrency(order.totalAmount)}`;
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        const customerPhone = order.user?.phone ? order.user.phone.replace(/[^0-9]/g, '') : '';
+        const phoneParam = customerPhone ? `&phone=${customerPhone.startsWith('0') ? '62' + customerPhone.slice(1) : customerPhone}` : '';
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}${phoneParam}`, '_blank');
     };
 
     const subtotal = order.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -78,7 +105,20 @@ export default function OrderInvoicePage() {
                     </Button>
                 </Link>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button 
+                        onClick={handleSendViaFonnte}
+                        disabled={isSendingWA}
+                        size="sm" 
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-xs flex items-center gap-2 font-bold"
+                    >
+                        {isSendingWA ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Send className="h-4 w-4" />
+                        )}
+                        Kirim Invoice ke WA (Otomatis)
+                    </Button>
                     <Button 
                         onClick={handleShareWA}
                         variant="outline" 
@@ -86,12 +126,12 @@ export default function OrderInvoicePage() {
                         className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded-xl flex items-center gap-2"
                     >
                         <Share2 className="h-4 w-4 text-emerald-600" />
-                        Bagikan ke WA
+                        Buka di WhatsApp
                     </Button>
                     <Button 
                         onClick={handlePrint}
                         size="sm" 
-                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm flex items-center gap-2 font-bold"
+                        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs flex items-center gap-2 font-bold"
                     >
                         <Printer className="h-4 w-4" />
                         Cetak / Unduh PDF

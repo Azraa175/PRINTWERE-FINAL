@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { sendEmail, generateOrderStatusEmailHtml } from '@/lib/email';
-import { sendWhatsAppMessage, formatOrderStatusWhatsAppMessage } from '@/lib/whatsapp';
+import { sendWhatsAppMessage, formatOrderStatusWhatsAppMessage, normalizePhoneNumber } from '@/lib/whatsapp';
 
 export interface NotifyOrderStatusParams {
     orderId: string;
@@ -11,6 +11,15 @@ export interface NotifyOrderStatusParams {
         email?: string;
         phone?: string;
     };
+}
+
+/**
+ * Ekstraksi nomor HP dari teks (misal: "Budi (085156669696)\nJl. Dago...")
+ */
+function extractPhoneFromText(text?: string | null): string | null {
+    if (!text) return null;
+    const match = text.match(/(?:(?:\+?62)|0)8[0-9]{8,12}/);
+    return match ? match[0] : null;
 }
 
 /**
@@ -55,10 +64,24 @@ export async function notifyOrderStatusChange({
 
         const customerName = customRecipient?.name || order.user?.name || 'Pelanggan Setia';
         const customerEmail = customRecipient?.email || order.user?.email;
-        const customerPhone = customRecipient?.phone || order.user?.phone;
 
-        // Base URL untuk invoice
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        // Prioritas penentuan nomor HP WhatsApp:
+        // 1. customRecipient.phone
+        // 2. Jika user.phone ada dan bukan dummy, gunakan user.phone
+        // 3. Fallback: ekstraksi dari shippingAddress
+        let customerPhone = customRecipient?.phone || order.user?.phone;
+        const phoneFromAddress = extractPhoneFromText(order.shippingAddress);
+
+        // Jika nomor user adalah dummy default (081234567890/1/2) dan ada nomor asli di alamat pengiriman, utamakan nomor di alamat
+        const isDummySeed = customerPhone && ['081234567890', '081234567891', '081234567892'].includes(customerPhone.trim());
+        if ((!customerPhone || isDummySeed) && phoneFromAddress) {
+            customerPhone = phoneFromAddress;
+        }
+
+        // Base URL untuk invoice - default ke domain produksi Vercel agar link selalu bisa dibuka di perangkat mobile
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) || 
+                        'https://printwere.vercel.app';
         const invoiceUrl = `${baseUrl.replace(/\/+$/, '')}/orders/${order.id}/invoice`;
 
         let emailSent = false;
@@ -112,7 +135,7 @@ export async function notifyOrderStatusChange({
             console.log(`[Notification Service] Nomor telepon/WA tidak tersedia untuk pesanan ${orderId}`);
         }
 
-        console.log(`[Notification Service] Selesai memproses notifikasi #${order.orderNo || orderId} (${newStatus}) -> Email: ${emailSent ? 'OK' : 'SKIP/FAIL'}, WA: ${waSent ? 'OK' : 'SKIP/FAIL'}`);
+        console.log(`[Notification Service] Selesai memproses notifikasi #${order.orderNo || orderId} (${newStatus}) -> Email: ${emailSent ? 'OK' : 'SKIP/FAIL'}, WA (${customerPhone}): ${waSent ? 'OK' : 'SKIP/FAIL'}`);
         return { emailSent, waSent };
     } catch (error: any) {
         console.error('[Notification Service] Critical error:', error);
