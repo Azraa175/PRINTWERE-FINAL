@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { notifyOrderStatusChange } from '@/lib/notifications';
 
 export async function GET() {
     try {
@@ -133,6 +134,13 @@ export async function POST(request: Request) {
 
             return newOrder;
         });
+
+        // Kirim notifikasi WA & Gmail (asinkron tanpa menghambat response)
+        notifyOrderStatusChange({
+            orderId: order.id,
+            newStatus: 'MENUNGGU_PEMBAYARAN',
+            note: 'Pesanan baru dibuat, silakan lakukan pembayaran'
+        }).catch(err => console.error('[Order Create Notification Error]:', err));
 
         return NextResponse.json({ success: true, data: order }, { status: 201 });
     } catch (error) {

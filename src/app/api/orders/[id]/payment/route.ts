@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { notifyOrderStatusChange } from '@/lib/notifications';
 
 // PATCH /api/orders/[id]/payment - Upload payment proof
 export async function PATCH(
@@ -76,6 +77,13 @@ export async function PATCH(
 
             return ord;
         });
+
+        // Kirim notifikasi WA & Gmail
+        notifyOrderStatusChange({
+            orderId: order.id,
+            newStatus: 'MENUNGGU_VERIFIKASI',
+            note: 'Bukti pembayaran telah diunggah dan sedang dalam antrean verifikasi Admin'
+        }).catch(err => console.error('[Payment Proof Notification Error]:', err));
 
         return NextResponse.json({
             success: true,

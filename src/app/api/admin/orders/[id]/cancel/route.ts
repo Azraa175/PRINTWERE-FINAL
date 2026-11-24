@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { notifyOrderStatusChange } from '@/lib/notifications';
 
 // PATCH /api/admin/orders/[id]/cancel - Cancel order
 export async function PATCH(
@@ -63,6 +64,13 @@ export async function PATCH(
 
             return ord;
         });
+
+        // Kirim notifikasi pembatalan ke pelanggan
+        notifyOrderStatusChange({
+            orderId: id,
+            newStatus: 'DIBATALKAN',
+            note: reason || 'Pesanan dibatalkan oleh Admin'
+        }).catch(err => console.error('[Admin Cancel Notification Error]:', err));
 
         return NextResponse.json({
             success: true,

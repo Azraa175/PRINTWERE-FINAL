@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getMobileAuthUser } from '@/lib/mobile-auth';
+import { notifyOrderStatusChange } from '@/lib/notifications';
 
 // GET /api/mobile/orders - List customer orders
 export async function GET(request: Request) {
@@ -146,6 +147,13 @@ export async function POST(request: Request) {
 
             return newOrder;
         });
+
+        // Kirim notifikasi WA & Gmail (asinkron)
+        notifyOrderStatusChange({
+            orderId: order.id,
+            newStatus: 'MENUNGGU_PEMBAYARAN',
+            note: 'Pesanan baru dibuat via Mobile App, silakan selesaikan pembayaran'
+        }).catch(err => console.error('[Mobile Order Create Notification Error]:', err));
 
         return NextResponse.json({
             success: true,

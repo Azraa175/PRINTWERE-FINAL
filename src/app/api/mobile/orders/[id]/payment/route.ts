@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getMobileAuthUser } from '@/lib/mobile-auth';
+import { notifyOrderStatusChange } from '@/lib/notifications';
 
 export async function POST(
     request: Request,
@@ -72,6 +73,13 @@ export async function POST(
 
             return ord;
         });
+
+        // Kirim notifikasi WA & Gmail (asinkron)
+        notifyOrderStatusChange({
+            orderId: order.id,
+            newStatus: 'MENUNGGU_VERIFIKASI',
+            note: 'Bukti pembayaran diunggah via Mobile App dan sedang diverifikasi admin'
+        }).catch(err => console.error('[Mobile Payment Proof Notification Error]:', err));
 
         return NextResponse.json({
             success: true,

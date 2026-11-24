@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { notifyOrderStatusChange } from '@/lib/notifications';
 
 // Valid status transitions (Alur PRD v2 + Kompatibilitas Legacy)
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -136,6 +137,13 @@ export async function PATCH(
 
             return ord;
         });
+
+        // Kirim notifikasi WA & Gmail ke pelanggan
+        notifyOrderStatusChange({
+            orderId: updatedOrder.id,
+            newStatus: newStatus,
+            note: note
+        }).catch(err => console.error('[Admin Confirm Notification Error]:', err));
 
         return NextResponse.json({
             success: true,

@@ -268,6 +268,12 @@ export default function AdminOrderDetailPage() {
 
                 {/* Primary State Action Buttons */}
                 <div className="flex items-center gap-2">
+                    <Link href={`/orders/${order.id}/invoice`} target="_blank">
+                        <Button variant="outline" size="sm" className="h-9 rounded-xl border-slate-300 text-xs font-bold text-slate-700 flex items-center gap-1.5 hover:bg-slate-50">
+                            <Printer className="h-3.5 w-3.5 text-blue-600" />
+                            Cetak Faktur / Invoice
+                        </Button>
+                    </Link>
                     {!isFinished && (
                         <>
                             {order.status === 'ANTRIAN_PRODUKSI' && (

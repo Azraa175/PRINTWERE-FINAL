@@ -88,13 +88,21 @@ export default function OrderDetailPage() {
                         </div>
                     </div>
 
-                    {isWaitingPayment && (
-                        <Link href={`/payment/${order.id}`}>
-                            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs px-5 h-10">
-                                {isPaymentRejected ? 'Upload Ulang Bukti' : 'Bayar Sekarang'}
+                    <div className="flex items-center gap-2">
+                        <Link href={`/orders/${order.id}/invoice`}>
+                            <Button variant="outline" className="border-slate-300 font-bold text-xs rounded-xl shadow-xs px-4 h-10 flex items-center gap-1.5 text-slate-700 hover:bg-slate-50">
+                                <Receipt className="h-4 w-4 text-blue-600" />
+                                Lihat Invoice
                             </Button>
                         </Link>
-                    )}
+                        {isWaitingPayment && (
+                            <Link href={`/payment/${order.id}`}>
+                                <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs px-5 h-10">
+                                    {isPaymentRejected ? 'Upload Ulang Bukti' : 'Bayar Sekarang'}
+                                </Button>
+                            </Link>
+                        )}
+                    </div>
                 </div>
 
                 {/* Unified Status Stepper */}

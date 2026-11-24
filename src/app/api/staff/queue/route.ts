@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { notifyOrderStatusChange } from '@/lib/notifications';
 
 // Status yang masuk dalam alur kerja produksi karyawan
 const PRODUCTION_STATUSES = [
@@ -144,6 +145,13 @@ export async function PATCH(request: Request) {
 
             return order;
         });
+
+        // Kirim notifikasi WA & Gmail ke pelanggan saat status produksi dimajukan staf
+        notifyOrderStatusChange({
+            orderId: updatedOrder.id,
+            newStatus: nextStatus,
+            note: note
+        }).catch(err => console.error('[Staff Queue Notification Error]:', err));
 
         return NextResponse.json({
             success: true,
