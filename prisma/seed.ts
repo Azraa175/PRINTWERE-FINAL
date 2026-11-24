@@ -4,9 +4,9 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log('--- Mulai Pembaruan Katalog & Harga Pasar PRINTWERE ---');
+    console.log('--- Mulai Pembaruan Katalog & Akun Resmi PRINTWERE ---');
 
-    // 1. Bersihkan order & data produk lama agar fresh
+    // 1. Bersihkan order & data lama agar database bersih
     await prisma.orderStatusLog.deleteMany();
     await prisma.payment.deleteMany();
     await prisma.orderItem.deleteMany();
@@ -14,9 +14,9 @@ async function main() {
     await prisma.product.deleteMany();
     await prisma.user.deleteMany();
 
-    console.log('Membersihkan data lama: selesai.');
+    console.log('Database dibersihkan: data dummy pesanan lama telah dihapus.');
 
-    // 2. Seeding Pengguna (Admin, Staff, Customer)
+    // 2. Akun Resmi
     const adminPassword = await bcrypt.hash('admin123', 10);
     const staffPassword = await bcrypt.hash('staff123', 10);
     const userPassword = await bcrypt.hash('user123', 10);
@@ -27,7 +27,7 @@ async function main() {
             email: 'admin@printwere.com',
             passwordHash: adminPassword,
             role: 'ADMIN',
-            phone: '081234567890',
+            phone: '085156669696',
             avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
         }
     });
@@ -38,30 +38,30 @@ async function main() {
             email: 'staff@printwere.com',
             passwordHash: staffPassword,
             role: 'STAFF',
-            phone: '081234567891',
+            phone: '085156669696',
             avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80',
         }
     });
 
     const customer = await prisma.user.create({
         data: {
-            name: 'Rian Pelanggan',
+            name: 'Fajar Pelanggan',
             email: 'user@printwere.com',
             passwordHash: userPassword,
             role: 'CUSTOMER',
-            phone: '081234567892',
+            phone: '085156669696',
             avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&q=80',
         }
     });
 
-    console.log('Pengguna terdaftar: Admin, Staff, Customer.');
+    console.log('Pengguna utama terdaftar: Admin, Staff, Customer.');
 
     // 3. Produk Percetakan dengan Harga Realistis Pasar Indonesia
     const productsData = [
         {
             name: 'Spanduk / Banner Outdoor Flexi 280gr',
             description: 'Bahan Flexi Standard 280gr ekonomis dan tahan cuaca outdoor. Cocok untuk spanduk toko, warung, baliho promosi, dan acara singkat. Harga dihitung per meter persegi (m² = panjang x lebar).',
-            price: 20000, // Rp 20.000 / m2
+            price: 20000,
             priceType: 'M2',
             minArea: 1.0,
             estDays: 1,
@@ -75,8 +75,8 @@ async function main() {
         },
         {
             name: 'Spanduk Tebal Flexi Korea 440gr (High-Res)',
-            description: 'Bahan Flexi Korea tebal 440gr serat halus tahan angin dan tidak mudah robek, cetakan tajam tajam tanpa garis. Sangat direkomendasikan untuk backdrop seminar dan neon box outdoor.',
-            price: 35000, // Rp 35.000 / m2
+            description: 'Bahan Flexi Korea tebal 440gr serat halus tahan angin dan tidak mudah robek, cetakan tajam tanpa garis. Sangat direkomendasikan untuk backdrop seminar dan neon box outdoor.',
+            price: 35000,
             priceType: 'M2',
             minArea: 1.0,
             estDays: 1,
@@ -230,122 +230,12 @@ async function main() {
         }
     ];
 
-    const createdProducts = [];
     for (const p of productsData) {
-        const prod = await prisma.product.create({ data: p as any });
-        createdProducts.push(prod);
+        await prisma.product.create({ data: p as any });
     }
 
-    console.log(`Berhasil menambahkan ${createdProducts.length} produk percetakan ke katalog!`);
-
-    // 4. Seeding Sample Orders
-    const pBanner = createdProducts[0];
-    const pCard = createdProducts[4];
-
-    const order1 = await prisma.order.create({
-        data: {
-            orderNo: 'PW-20261115-1001',
-            userId: customer.id,
-            status: 'ANTRIAN_PRODUKSI',
-            paymentMethod: 'TRANSFER',
-            deliveryType: 'PICKUP',
-            shippingAddress: 'Ambil di Toko / Workshop PrintWere',
-            shippingMethod: 'Ambil Sendiri',
-            shippingCost: 0,
-            totalAmount: 60000,
-            note: 'Banner panggung seminar kampus, mohon lubang mata ayam di setiap sudut dan tengah.',
-            dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
-            assignedStaffId: staff.id,
-            items: {
-                create: [
-                    {
-                        productId: pBanner.id,
-                        quantity: 1,
-                        price: 60000,
-                        width: 3.0,
-                        height: 1.0, // 3 x 1 = 3 m2 * Rp 20.000 = Rp 60.000
-                        fileUrl: 'https://placehold.co/1200x400/png?text=Desain+Banner+Seminar',
-                        notes: 'Ukuran 3x1 meter, finishing mata ayam rapi',
-                        options: JSON.stringify({ finishing: 'Mata Ayam Tiap Sudut' })
-                    }
-                ]
-            },
-            payments: {
-                create: {
-                    amount: 60000,
-                    method: 'TRANSFER',
-                    proofUrl: 'https://placehold.co/600x800/png?text=Bukti+Transfer+BCA',
-                    status: 'DISETUJUI',
-                    verifiedById: admin.id,
-                    verifiedAt: new Date(),
-                }
-            },
-            statusLogs: {
-                create: [
-                    {
-                        fromStatus: 'MENUNGGU_PEMBAYARAN',
-                        toStatus: 'MENUNGGU_VERIFIKASI',
-                        changedById: customer.id,
-                        note: 'Pelanggan mengunggah bukti transfer'
-                    },
-                    {
-                        fromStatus: 'MENUNGGU_VERIFIKASI',
-                        toStatus: 'ANTRIAN_PRODUKSI',
-                        changedById: admin.id,
-                        note: 'Pembayaran telah diverifikasi oleh Admin. Masuk antrean cetak.'
-                    }
-                ]
-            }
-        }
-    });
-
-    const order2 = await prisma.order.create({
-        data: {
-            orderNo: 'PW-20261115-1002',
-            userId: customer.id,
-            status: 'MENUNGGU_VERIFIKASI',
-            paymentMethod: 'QRIS',
-            deliveryType: 'DELIVERY',
-            shippingAddress: 'Jl. Dago Asri No. 12, Bandung, Jawa Barat (081234567892)',
-            shippingMethod: 'Kurir Standar (JNE/J&T)',
-            shippingCost: 15000,
-            totalAmount: 50000, // 35000 + 15000
-            note: 'Tolong laminasi doff-nya halus ya.',
-            items: {
-                create: [
-                    {
-                        productId: pCard.id,
-                        quantity: 1,
-                        price: 35000,
-                        fileUrl: 'https://placehold.co/600x400/png?text=Desain+Kartu+Nama+Bisnis',
-                        notes: 'Sudut Rounded, Laminasi Doff',
-                        options: JSON.stringify({ finishing: 'Laminasi Doff 2 Sisi', corner: 'Rounded' })
-                    }
-                ]
-            },
-            payments: {
-                create: {
-                    amount: 50000,
-                    method: 'QRIS',
-                    proofUrl: 'https://placehold.co/600x800/png?text=Bukti+QRIS+Berhasil',
-                    status: 'MENUNGGU',
-                }
-            },
-            statusLogs: {
-                create: [
-                    {
-                        fromStatus: 'MENUNGGU_PEMBAYARAN',
-                        toStatus: 'MENUNGGU_VERIFIKASI',
-                        changedById: customer.id,
-                        note: 'Pelanggan mengunggah bukti pembayaran QRIS'
-                    }
-                ]
-            }
-        }
-    });
-
-    console.log(`Sample Orders berhasil dibuat: ${order1.orderNo}, ${order2.orderNo}`);
-    console.log('--- Pembaruan Katalog & Harga Pasar Selesai! ---');
+    console.log(`Berhasil menambahkan ${productsData.length} produk percetakan resmi ke katalog!`);
+    console.log('--- Database Bersih Tanpa Pesanan Dummy! Siap untuk Transaksi Riil ---');
 }
 
 main()

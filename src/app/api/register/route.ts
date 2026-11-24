@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { name, email, password } = body;
+        const { name, email, password, phone } = body;
 
         // Basic validation
         if (!name || name.trim().length < 3) {
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
                 passwordHash,
                 role: 'CUSTOMER',
                 status: 'ACTIVE',
+                phone: phone ? phone.trim() : null,
             },
             select: {
                 id: true,

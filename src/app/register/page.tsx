@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/Input';
 const registerSchema = z.object({
     name: z.string().min(3, 'Nama harus diisi minimal 3 karakter'),
     email: z.string().email('Format email tidak valid'),
+    phone: z.string().min(10, 'Nomor WhatsApp minimal 10 digit').optional().or(z.literal('')),
     password: z.string().min(6, 'Password minimal 6 karakter'),
     confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
@@ -42,6 +43,7 @@ export default function RegisterPage() {
                 body: JSON.stringify({
                     name: data.name,
                     email: data.email,
+                    phone: data.phone || undefined,
                     password: data.password
                 })
             });
@@ -111,6 +113,14 @@ export default function RegisterPage() {
                             error={errors.email?.message}
                             autoComplete="email"
                             {...register('email')}
+                        />
+                        <Input
+                            label="Nomor WhatsApp (Untuk Notifikasi Faktur)"
+                            type="tel"
+                            placeholder="Contoh: 081234567890"
+                            error={errors.phone?.message}
+                            autoComplete="tel"
+                            {...register('phone')}
                         />
                         <Input
                             label="Kata Sandi (Password)"

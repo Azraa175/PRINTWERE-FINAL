@@ -82,7 +82,15 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { items, totalAmount, paymentMethod, shippingAddress, shippingMethod, shippingCost } = body;
+        const { items, totalAmount, paymentMethod, shippingAddress, shippingMethod, shippingCost, phone } = body;
+
+        // Update nomor telepon user jika disertakan
+        if (phone && phone.trim().length >= 8) {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { phone: phone.trim() }
+            }).catch(err => console.log('Update mobile user phone error:', err));
+        }
 
         if (!items || !Array.isArray(items) || items.length === 0) {
             return NextResponse.json({ success: false, error: 'Keranjang belanja kosong' }, { status: 400 });
@@ -152,7 +160,8 @@ export async function POST(request: Request) {
         notifyOrderStatusChange({
             orderId: order.id,
             newStatus: 'MENUNGGU_PEMBAYARAN',
-            note: 'Pesanan baru dibuat via Mobile App, silakan selesaikan pembayaran'
+            note: 'Pesanan baru dibuat via Mobile App, silakan selesaikan pembayaran',
+            customRecipient: phone ? { phone: phone.trim() } : undefined
         }).catch(err => console.error('[Mobile Order Create Notification Error]:', err));
 
         return NextResponse.json({
