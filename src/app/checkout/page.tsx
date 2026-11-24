@@ -15,19 +15,19 @@ import { useAuthStore } from '@/store/authStore';
 import { formatCurrency, cn } from '@/lib/utils';
 
 const checkoutSchema = z.object({
-    name: z.string().min(3, 'Nama harus diisi minimal 3 karakter'),
-    phone: z.string().min(10, 'Nomor telepon / WhatsApp minimal 10 digit'),
-    address: z.string().min(10, 'Alamat pengiriman minimal 10 karakter'),
-    paymentMethod: z.enum(['COD', 'QRIS']),
+    name: z.string().min(3, 'Nama minimal 3 karakter'),
+    phone: z.string().min(10, 'No. HP minimal 10 digit'),
+    address: z.string().min(10, 'Alamat minimal 10 karakter'),
+    paymentMethod: z.enum(['COD', 'QRIS', 'TRANSFER']),
     shippingMethod: z.string().min(1, 'Pilih metode pengiriman')
 });
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
 const SHIPPING_METHODS = [
-    { id: 'JNE', name: 'JNE Reguler', desc: 'Pengiriman reguler 2-3 hari kerja', cost: 12000 },
-    { id: 'GOSEND', name: 'GoSend / Grab Instant', desc: 'Pengiriman kurir di hari yang sama', cost: 25000 },
-    { id: 'PICKUP', name: 'Ambil Sendiri di Outlet', desc: 'Gratis ambil langsung di toko PrintWere', cost: 0 },
+    { id: 'JNE', name: 'JNE Reguler', desc: '2-3 hari kerja', cost: 12000 },
+    { id: 'GOSEND', name: 'GoSend / Grab', desc: 'Kurir hari ini', cost: 25000 },
+    { id: 'PICKUP', name: 'Ambil di Toko', desc: 'Gratis', cost: 0 },
 ];
 
 export default function CheckoutPage() {
@@ -41,7 +41,7 @@ export default function CheckoutPage() {
         defaultValues: {
             name: user?.name || '',
             phone: user?.phone || '',
-            paymentMethod: 'QRIS',
+            paymentMethod: 'TRANSFER',
             shippingMethod: 'JNE'
         }
     });
@@ -98,7 +98,7 @@ export default function CheckoutPage() {
             if (result.success && result.data) {
                 clearCart();
                 toast.success('Pesanan berhasil dibuat!');
-                if (data.paymentMethod === 'QRIS') {
+                if (data.paymentMethod === 'TRANSFER' || data.paymentMethod === 'COD') {
                     router.push(`/payment/${result.data.id}`);
                 } else {
                     router.push(`/my-orders`);
@@ -122,12 +122,12 @@ export default function CheckoutPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Checkout Pesanan</h1>
-                        <p className="text-xs text-slate-500 mt-1">Lengkapi alamat pengiriman dan pilih metode pembayaran</p>
+                        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900">Checkout</h1>
+                        <p className="text-xs text-slate-500 mt-1">Isi data & pilih pembayaran</p>
                     </div>
                     <Link href="/cart" className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1">
                         <ArrowLeft className="h-3.5 w-3.5" />
-                        Kembali ke Keranjang
+                        <span className="hidden sm:inline">Kembali</span>
                     </Link>
                 </div>
 
@@ -140,33 +140,33 @@ export default function CheckoutPage() {
                                 <div className="h-7 w-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                                     <MapPin className="h-4 w-4" />
                                 </div>
-                                <h3 className="font-bold text-sm text-slate-900">Alamat & Kontak Pengiriman</h3>
+                                <h3 className="font-bold text-sm text-slate-900">Alamat & Kontak</h3>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Input
-                                    label="Nama Lengkap Penerima"
-                                    placeholder="Contoh: Muhammad Fajar"
+                                    label="Nama Penerima"
+                                    placeholder="Muhammad Fajar"
                                     error={errors.name?.message}
                                     {...register('name')}
                                 />
 
                                 <Input
-                                    label="Nomor WhatsApp / Telepon"
-                                    placeholder="Contoh: 081234567890"
+                                    label="No. WhatsApp"
+                                    placeholder="081234567890"
                                     error={errors.phone?.message}
                                     {...register('phone')}
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 mb-1.5">Alamat Lengkap Tujuan</label>
+                                <label className="block text-xs font-bold text-slate-700 mb-1.5">Alamat Tujuan</label>
                                 <textarea
                                     className={cn(
                                         "w-full rounded-xl border border-slate-300 px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[90px] bg-white",
                                         errors.address && "border-red-500 focus:ring-red-500"
                                     )}
-                                    placeholder="Nama jalan, nomor rumah, RT/RW, kelurahan, kecamatan, kota, kode pos..."
+                                    placeholder="Jalan, No. Rumah, RT/RW, Kota, Kode Pos"
                                     {...register('address')}
                                 />
                                 {errors.address && (
@@ -181,7 +181,7 @@ export default function CheckoutPage() {
                                 <div className="h-7 w-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                                     <Truck className="h-4 w-4" />
                                 </div>
-                                <h3 className="font-bold text-sm text-slate-900">Opsi Pengiriman</h3>
+                                <h3 className="font-bold text-sm text-slate-900">Pengiriman</h3>
                             </div>
 
                             <div className="space-y-3">
@@ -225,13 +225,33 @@ export default function CheckoutPage() {
                                 <div className="h-7 w-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
                                     <CreditCard className="h-4 w-4" />
                                 </div>
-                                <h3 className="font-bold text-sm text-slate-900">Metode Pembayaran</h3>
+                                <h3 className="font-bold text-sm text-slate-900">Pembayaran</h3>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <label
                                     className={cn(
-                                        "flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer",
+                                        "flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer",
+                                        selectedPayment === 'TRANSFER'
+                                            ? "border-blue-600 bg-blue-50/40 text-blue-900"
+                                            : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                                    )}
+                                >
+                                    <input
+                                        type="radio"
+                                        value="TRANSFER"
+                                        {...register('paymentMethod')}
+                                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 mt-0.5"
+                                    />
+                                    <div>
+                                        <p className="font-bold text-xs text-slate-900">Transfer Bank</p>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">BCA, Mandiri, BRI</p>
+                                    </div>
+                                </label>
+
+                                <label
+                                    className={cn(
+                                        "flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer",
                                         selectedPayment === 'QRIS'
                                             ? "border-blue-600 bg-blue-50/40 text-blue-900"
                                             : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
@@ -244,14 +264,14 @@ export default function CheckoutPage() {
                                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 mt-0.5"
                                     />
                                     <div>
-                                        <p className="font-bold text-xs text-slate-900">Transfer & QRIS Digital</p>
-                                        <p className="text-[11px] text-slate-500 mt-0.5">BCA, Mandiri, GoPay, OVO, ShopeePay</p>
+                                        <p className="font-bold text-xs text-slate-900">QRIS</p>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">GoPay, OVO, DANA</p>
                                     </div>
                                 </label>
 
                                 <label
                                     className={cn(
-                                        "flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer",
+                                        "flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer",
                                         selectedPayment === 'COD'
                                             ? "border-blue-600 bg-blue-50/40 text-blue-900"
                                             : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
@@ -264,8 +284,8 @@ export default function CheckoutPage() {
                                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 mt-0.5"
                                     />
                                     <div>
-                                        <p className="font-bold text-xs text-slate-900">Bayar di Tempat (COD)</p>
-                                        <p className="text-[11px] text-slate-500 mt-0.5">Bayar saat ambil pesanan di outlet</p>
+                                        <p className="font-bold text-xs text-slate-900">COD</p>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">Bayar di outlet</p>
                                     </div>
                                 </label>
                             </div>
@@ -280,10 +300,10 @@ export default function CheckoutPage() {
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Memproses Pesanan...
+                                    Memproses...
                                 </>
                             ) : (
-                                `Konfirmasi & Pesan (${formatCurrency(finalTotal)})`
+                                `Pesan (${formatCurrency(finalTotal)})`
                             )}
                         </Button>
                     </form>
@@ -292,7 +312,7 @@ export default function CheckoutPage() {
                     <div className="lg:col-span-1">
                         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs sticky top-24 space-y-4">
                             <h3 className="font-bold text-base text-slate-900 pb-3 border-b border-slate-100">
-                                Ringkasan Belanja ({items.length} Produk)
+                                Ringkasan ({items.length} item)
                             </h3>
 
                             <div className="max-h-[260px] overflow-y-auto divide-y divide-slate-100 space-y-2">
@@ -313,7 +333,7 @@ export default function CheckoutPage() {
 
                             <div className="border-t border-slate-100 pt-3 space-y-2.5 text-xs">
                                 <div className="flex justify-between text-slate-600">
-                                    <span>Subtotal Produk</span>
+                                    <span>Subtotal</span>
                                     <span className="font-semibold text-slate-900">{formatCurrency(subtotal)}</span>
                                 </div>
                                 <div className="flex justify-between text-slate-600">
@@ -334,7 +354,7 @@ export default function CheckoutPage() {
 
                             <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-400 pt-2">
                                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-                                <span>Garansi Cetak Ulang Jika Hasil Cacat</span>
+                                <span>Garansi cetak ulang</span>
                             </div>
                         </div>
                     </div>

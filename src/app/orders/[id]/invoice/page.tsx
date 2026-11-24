@@ -99,9 +99,9 @@ export default function OrderInvoicePage() {
             {/* Top Toolbar (Hidden on Print) */}
             <div className="max-w-4xl mx-auto mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
                 <Link href={`/orders/${order.id}`}>
-                    <Button variant="outline" size="sm" className="bg-white border-slate-300 rounded-xl flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="bg-white border-slate-300 rounded-xl flex items-center gap-1.5">
                         <ArrowLeft className="h-4 w-4" />
-                        Kembali ke Detail Pesanan
+                        <span className="hidden sm:inline">Detail Pesanan</span>
                     </Button>
                 </Link>
 
@@ -117,7 +117,7 @@ export default function OrderInvoicePage() {
                         ) : (
                             <Send className="h-4 w-4" />
                         )}
-                        Kirim Invoice ke WA (Otomatis)
+                        Kirim ke WA
                     </Button>
                     <Button 
                         onClick={handleShareWA}
@@ -126,7 +126,7 @@ export default function OrderInvoicePage() {
                         className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded-xl flex items-center gap-2"
                     >
                         <Share2 className="h-4 w-4 text-emerald-600" />
-                        Buka di WhatsApp
+                        Share WA
                     </Button>
                     <Button 
                         onClick={handlePrint}
@@ -134,7 +134,7 @@ export default function OrderInvoicePage() {
                         className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs flex items-center gap-2 font-bold"
                     >
                         <Printer className="h-4 w-4" />
-                        Cetak / Unduh PDF
+                        Cetak PDF
                     </Button>
                 </div>
             </div>
@@ -233,8 +233,8 @@ export default function OrderInvoicePage() {
                         <thead>
                             <tr className="border-b-2 border-slate-800 text-slate-800 uppercase font-black tracking-wider text-[11px]">
                                 <th className="py-3 px-2 w-10">No</th>
-                                <th className="py-3 px-3">Deskripsi Produk Percetakan</th>
-                                <th className="py-3 px-3 text-center">Dimensi / Spesifikasi</th>
+                                <th className="py-3 px-3">Produk</th>
+                                <th className="py-3 px-3 text-center">Dimensi</th>
                                 <th className="py-3 px-3 text-center">Jumlah</th>
                                 <th className="py-3 px-3 text-right">Harga Satuan</th>
                                 <th className="py-3 px-3 text-right">Subtotal</th>
@@ -318,7 +318,7 @@ export default function OrderInvoicePage() {
                             <span className="font-bold text-slate-800">{formatCurrency(subtotal)}</span>
                         </div>
                         <div className="flex justify-between text-slate-600">
-                            <span>Biaya Pengiriman / Ongkos Kirim</span>
+                            <span>Ongkir</span>
                             <span className="font-bold text-slate-800">
                                 {shipping > 0 ? formatCurrency(shipping) : 'Gratis / Ambil Sendiri'}
                             </span>

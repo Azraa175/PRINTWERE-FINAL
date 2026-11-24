@@ -97,8 +97,8 @@ export default function OrderDetailPage() {
                         </Link>
                         {isWaitingPayment && (
                             <Link href={`/payment/${order.id}`}>
-                                <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs px-5 h-10">
-                                    {isPaymentRejected ? 'Upload Ulang Bukti' : 'Bayar Sekarang'}
+                                <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs px-4 h-10">
+                                    {isPaymentRejected ? 'Upload Ulang' : (order.paymentMethod === 'QRIS' ? 'Bayar QRIS' : 'Upload Bukti')}
                                 </Button>
                             </Link>
                         )}

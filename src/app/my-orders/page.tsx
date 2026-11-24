@@ -28,10 +28,10 @@ const STATUS_TABS = [
     { id: 'all', label: 'Semua', icon: Package },
     { id: 'MENUNGGU_PEMBAYARAN', label: 'Belum Bayar', icon: Clock },
     { id: 'MENUNGGU_VERIFIKASI', label: 'Verifikasi', icon: RefreshCw },
-    { id: 'ANTRIAN_PRODUKSI', label: 'Antrean Cetak', icon: Printer },
+    { id: 'ANTRIAN_PRODUKSI', label: 'Antrean', icon: Printer },
     { id: 'SEDANG_DICETAK', label: 'Sedang Dicetak', icon: RefreshCw },
     { id: 'FINISHING', label: 'Finishing', icon: Scissors },
-    { id: 'SIAP_DIAMBIL', label: 'Siap Diambil/Kirim', icon: Truck },
+    { id: 'SIAP_DIAMBIL', label: 'Siap', icon: Truck },
     { id: 'SELESAI', label: 'Selesai', icon: CheckCircle },
     { id: 'DIBATALKAN', label: 'Dibatalkan', icon: XCircle },
 ];
@@ -78,8 +78,8 @@ export default function MyOrdersPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Pesanan Saya</h1>
-                    <p className="text-sm text-slate-500 mt-1">
-                        Pantau status pengerjaan cetakan dan riwayat pesanan Anda secara real-time.
+                    <p className="text-xs text-slate-500 mt-1">
+                        Pantau status cetakan & riwayat pesanan.
                     </p>
                 </div>
                 <Button 
@@ -140,7 +140,7 @@ export default function MyOrdersPage() {
                     <h3 className="text-base font-semibold text-slate-800">Tidak ada pesanan</h3>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
                         {activeTab === 'all' 
-                            ? 'Anda belum memiliki riwayat pesanan. Mulai belanja produk cetak berkualitas kami.' 
+                            ? 'Belum ada pesanan. Mulai belanja produk cetak kami.' 
                             : 'Tidak ada pesanan dengan status yang dipilih.'}
                     </p>
                     <Link href="/products">
@@ -212,7 +212,7 @@ export default function MyOrdersPage() {
                                     ))}
                                     {order.items?.length > 2 && (
                                         <p className="text-xs text-slate-500 font-medium pl-1">
-                                            +{order.items.length - 2} produk lainnya dalam pesanan ini
+                                            +{order.items.length - 2} item lain
                                         </p>
                                     )}
                                 </div>
@@ -222,20 +222,20 @@ export default function MyOrdersPage() {
                                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between gap-2">
                                         <div className="flex items-center gap-2">
                                             <Clock className="h-4 w-4 text-amber-600 shrink-0" />
-                                            <span>Silakan selesaikan pembayaran dan unggah bukti transfer.</span>
+                                            <span>Selesaikan pembayaran.</span>
                                         </div>
                                         <Link 
                                             href={`/payment/${order.id}`}
                                             className="font-bold text-amber-800 underline hover:text-amber-950 shrink-0"
                                         >
-                                            Unggah Bukti →
+                                            {order.paymentMethod === 'QRIS' ? 'Bayar QRIS →' : 'Unggah Bukti →'}
                                         </Link>
                                     </div>
                                 )}
                                 {isWaitingVerif && (
                                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-2">
                                         <RefreshCw className="h-4 w-4 text-blue-600 shrink-0 animate-spin" />
-                                        <span>Bukti transfer telah diterima dan sedang diverifikasi oleh Tim Admin.</span>
+                                        <span>Bukti transfer sedang diverifikasi admin.</span>
                                     </div>
                                 )}
 
@@ -255,7 +255,7 @@ export default function MyOrdersPage() {
                                             <Link href={`/payment/${order.id}`}>
                                                 <Button size="sm" className="rounded-xl text-xs bg-amber-600 hover:bg-amber-700 text-white gap-1.5 shadow-xs">
                                                     <Receipt className="h-3.5 w-3.5" />
-                                                    Bayar Sekarang
+                                                    {order.paymentMethod === 'QRIS' ? 'Bayar QRIS' : 'Upload Bukti'}
                                                 </Button>
                                             </Link>
                                         )}
