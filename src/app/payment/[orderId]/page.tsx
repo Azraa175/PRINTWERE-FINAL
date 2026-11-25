@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import Script from 'next/script';
 import { 
     Upload, 
     CheckCircle2, 
@@ -19,7 +20,9 @@ import {
     FileImage, 
     Trash2,
     ShieldCheck,
-    Hash
+    Hash,
+    Sparkles,
+    ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Order } from '@/types';
@@ -49,6 +52,7 @@ export default function PaymentPage() {
     const [filePreview, setFilePreview] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isMidtransLoading, setIsMidtransLoading] = useState(false);
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
     const [paymentTab, setPaymentTab] = useState<'qris' | 'transfer'>('qris');
 
@@ -94,6 +98,47 @@ export default function PaymentPage() {
         setCopiedIndex(index);
         toast.success('Nomor rekening berhasil disalin!');
         setTimeout(() => setCopiedIndex(null), 2000);
+    };
+
+    const handleMidtransPay = async () => {
+        if (!order) return;
+        setIsMidtransLoading(true);
+        try {
+            const res = await fetch('/api/payment/snap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId: order.id }),
+            });
+            const data = await res.json();
+            if (data.success && data.token) {
+                if (typeof window !== 'undefined' && (window as any).snap) {
+                    (window as any).snap.pay(data.token, {
+                        onSuccess: () => {
+                            toast.success('Pembayaran berhasil dikonfirmasi!');
+                            router.push(`/orders/${order.id}`);
+                        },
+                        onPending: () => {
+                            toast.info('Selesaikan pembayaran sesuai instruksi.');
+                            router.push(`/orders/${order.id}`);
+                        },
+                        onError: () => {
+                            toast.error('Pembayaran gagal atau dibatalkan.');
+                        },
+                        onClose: () => {
+                            toast.info('Jendela pembayaran ditutup.');
+                        },
+                    });
+                } else if (data.redirectUrl) {
+                    window.location.href = data.redirectUrl;
+                }
+            } else {
+                toast.error(data.error || 'Gagal memulai sesi pembayaran Midtrans');
+            }
+        } catch (e: any) {
+            toast.error('Terjadi kesalahan saat memproses pembayaran');
+        } finally {
+            setIsMidtransLoading(false);
+        }
     };
 
     const handleUpload = async () => {
@@ -228,12 +273,37 @@ export default function PaymentPage() {
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 text-center space-y-4">
+                        <Button
+                            onClick={handleMidtransPay}
+                            disabled={isMidtransLoading}
+                            className="w-full h-12 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center justify-center gap-2"
+                        >
+                            {isMidtransLoading ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Membuka Midtrans...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="h-4 w-4 text-amber-300" />
+                                    Bayar Sekarang via Midtrans
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                </>
+                            )}
+                        </Button>
+
+                        <div className="flex items-center gap-3 my-2">
+                            <div className="flex-1 h-px bg-slate-200" />
+                            <span className="text-[11px] text-slate-400 font-semibold uppercase">atau scan manual</span>
+                            <div className="flex-1 h-px bg-slate-200" />
+                        </div>
+
                         <div className="bg-white p-4 rounded-2xl shadow-xs border-2 border-slate-100 inline-block">
                             <Image
                                 src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=PRINTWERE-PAYMENT-MOCK"
                                 alt="QRIS Code PrintWere"
-                                width={200}
-                                height={200}
+                                width={180}
+                                height={180}
                                 className="mx-auto rounded-lg"
                             />
                         </div>
@@ -242,10 +312,10 @@ export default function PaymentPage() {
                             <p className="text-[11px] text-slate-400">BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA, ShopeePay</p>
                         </div>
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800">
-                            Pembayaran QRIS otomatis diverifikasi sistem. Tidak memerlukan upload bukti pembayaran.
+                            Pembayaran Midtrans / QRIS diverifikasi otomatis oleh sistem.
                         </div>
-                        <Link href={`/orders/${order.id}`} className="block pt-2">
-                            <Button className="w-full h-11 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                        <Link href={`/orders/${order.id}`} className="block pt-1">
+                            <Button variant="outline" className="w-full h-10 rounded-xl text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50">
                                 Periksa Status Pesanan →
                             </Button>
                         </Link>
@@ -418,6 +488,12 @@ export default function PaymentPage() {
                     </div>
                 </div>
             )}
+
+            <Script
+                src="https://app.sandbox.midtrans.com/snap/snap.js"
+                data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || 'Mid-client-K7XwXTsA5VzBPpSg'}
+                strategy="lazyOnload"
+            />
         </div>
     );
 }
