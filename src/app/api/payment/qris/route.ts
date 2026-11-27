@@ -38,6 +38,16 @@ export async function POST(req: Request) {
             },
         });
 
+        // Catat midtransOrderId agar polling/sync status selalu menemukan transaksi ini
+        await prisma.orderStatusLog.create({
+            data: {
+                orderId: order.id,
+                fromStatus: order.status,
+                toStatus: order.status,
+                note: `MIDTRANS_TX:${qris.orderId}`,
+            },
+        });
+
         return NextResponse.json({
             success: true,
             ...qris,

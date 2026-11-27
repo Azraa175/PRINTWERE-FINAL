@@ -1,6 +1,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { syncOrderWithMidtrans } from '@/lib/midtransSync';
 
 export async function GET(
     request: Request,
@@ -8,7 +9,7 @@ export async function GET(
 ) {
     try {
         const id = (await params).id;
-        const order = await prisma.order.findFirst({
+        let order = await prisma.order.findFirst({
             where: {
                 OR: [
                     { id: id },
@@ -41,6 +42,25 @@ export async function GET(
                 { success: false, error: 'Order not found' },
                 { status: 404 }
             );
+        }
+
+        // Sinkronisasi aktif dengan Midtrans jika status masih menunggu pembayaran
+        if (['MENUNGGU_PEMBAYARAN', 'PENDING', 'PEMBAYARAN_DITOLAK'].includes(order.status)) {
+            const synced = await syncOrderWithMidtrans(order.id);
+            if (synced) {
+                const refreshed = await prisma.order.findUnique({
+                    where: { id: order.id },
+                    include: {
+                        items: { include: { product: true } },
+                        payments: { orderBy: { createdAt: 'desc' }, take: 1 },
+                        statusLogs: {
+                            orderBy: { createdAt: 'desc' },
+                            include: { changedBy: { select: { id: true, name: true, role: true } } }
+                        }
+                    }
+                });
+                if (refreshed) order = refreshed;
+            }
         }
 
         const orderWithParsedOptions = {

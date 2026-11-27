@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
+import { syncOrderWithMidtrans } from '@/lib/midtransSync';
 
 // GET /api/user/orders - Get orders for authenticated user
 export async function GET(request: Request) {
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
             whereClause.status = status.toUpperCase();
         }
 
-        const orders = await prisma.order.findMany({
+        let orders = await prisma.order.findMany({
             where: whereClause,
             orderBy: { createdAt: 'desc' },
             include: {
@@ -67,6 +68,44 @@ export async function GET(request: Request) {
                 }
             }
         });
+
+        // Sinkronisasi aktif pesanan yang masih menunggu pembayaran dengan Midtrans
+        const pendingOrders = orders
+            .filter((o: any) => ['MENUNGGU_PEMBAYARAN', 'PENDING', 'PEMBAYARAN_DITOLAK'].includes(o.status))
+            .slice(0, 3);
+        if (pendingOrders.length > 0) {
+            const syncResults = await Promise.all(
+                pendingOrders.map((o: any) => syncOrderWithMidtrans(o.id))
+            );
+            if (syncResults.some(Boolean)) {
+                orders = await prisma.order.findMany({
+                    where: whereClause,
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        items: {
+                            include: {
+                                product: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        image: true,
+                                        price: true,
+                                        priceType: true,
+                                        category: true
+                                    }
+                                }
+                            }
+                        },
+                        payments: { orderBy: { createdAt: 'desc' }, take: 1 },
+                        statusLogs: {
+                            orderBy: { createdAt: 'desc' },
+                            take: 5,
+                            include: { changedBy: { select: { id: true, name: true, role: true } } }
+                        }
+                    }
+                });
+            }
+        }
 
         // Parse options JSON string with error handling
         const ordersWithParsedOptions = orders.map((order: any) => ({

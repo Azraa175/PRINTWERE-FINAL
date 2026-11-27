@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyMidtransSignature } from '@/lib/midtrans';
-import { notifyOrderStatusChange } from '@/lib/notifications';
+import { applyMidtransPaymentUpdate } from '@/lib/midtransSync';
 
 export async function POST(req: Request) {
     try {
@@ -48,23 +48,30 @@ export async function POST(req: Request) {
             return NextResponse.json({ status: 'OK', message: 'Midtrans test notification received successfully' });
         }
 
-        // 2. Cari order di database berdasarkan orderNo, ID, atau prefix orderNo (jika ada suffix retry)
-        const baseOrderNo = String(order_id).split('-').length > 3
-            ? String(order_id).split('-').slice(0, 3).join('-')
-            : String(order_id);
+        // 2. Cari order di database berdasarkan orderNo, ID, suffix retry, atau log MIDTRANS_TX
+        const rawOrderId = String(order_id);
+        const strippedOrderId = rawOrderId.replace(/-(?:Q)?\d{4,5}$/, '');
 
-        const order = await prisma.order.findFirst({
+        let order = await prisma.order.findFirst({
             where: {
                 OR: [
-                    { orderNo: String(order_id) },
-                    { orderNo: baseOrderNo },
-                    { id: String(order_id) },
+                    { orderNo: rawOrderId },
+                    { orderNo: strippedOrderId },
+                    { id: rawOrderId },
+                    { id: strippedOrderId },
                 ],
             },
-            include: {
-                user: true,
-            },
         });
+
+        if (!order) {
+            const logMatch = await prisma.orderStatusLog.findFirst({
+                where: { note: `MIDTRANS_TX:${rawOrderId}` },
+                include: { order: true },
+            });
+            if (logMatch?.order) {
+                order = logMatch.order;
+            }
+        }
 
         if (!order) {
             console.warn('[Midtrans Webhook] Order not found in database:', order_id);
@@ -74,79 +81,16 @@ export async function POST(req: Request) {
             );
         }
 
-        // 3. Evaluasi status transaksi dari Midtrans
-        let newStatus: string | null = null;
-        let isPaid = false;
-
-        if (transaction_status === 'capture') {
-            if (fraud_status === 'accept') {
-                newStatus = 'ANTRIAN_PRODUKSI';
-                isPaid = true;
-            }
-        } else if (transaction_status === 'settlement') {
-            newStatus = 'ANTRIAN_PRODUKSI';
-            isPaid = true;
-        } else if (transaction_status === 'pending') {
-            newStatus = 'MENUNGGU_PEMBAYARAN';
-        } else if (
-            transaction_status === 'deny' ||
-            transaction_status === 'cancel' ||
-            transaction_status === 'expire'
-        ) {
-            newStatus = 'DIBATALKAN';
-        }
-
-        // 4. Update order dan database jika status berubah
-        if (newStatus && newStatus !== order.status) {
-            await prisma.$transaction(async (tx) => {
-                // Update Order Status
-                await tx.order.update({
-                    where: { id: order.id },
-                    data: {
-                        status: newStatus as any,
-                        paymentMethod: payment_type ? payment_type.toUpperCase() : order.paymentMethod,
-                    },
-                });
-
-                // Catat Log Status
-                await tx.orderStatusLog.create({
-                    data: {
-                        orderId: order.id,
-                        fromStatus: order.status,
-                        toStatus: newStatus,
-                        note: isPaid
-                            ? `Pembayaran via ${payment_type?.toUpperCase() || 'MIDTRANS'} diverifikasi otomatis oleh Midtrans (${transaction_id || ''})`
-                            : `Pembaruan status Midtrans: ${transaction_status}`,
-                    },
-                });
-
-                // Jika lunas (settlement / capture), catat ke tabel Payment
-                if (isPaid) {
-                    await tx.payment.create({
-                        data: {
-                            orderId: order.id,
-                            amount: parseFloat(gross_amount) || order.totalAmount,
-                            method: payment_type ? payment_type.toUpperCase() : 'MIDTRANS',
-                            proofUrl: `MIDTRANS:${transaction_id || order_id}`,
-                            status: 'DISETUJUI',
-                        },
-                    });
-                }
-            });
-
-            console.log(`[Midtrans Webhook] Order ${order.id} status updated to ${newStatus}`);
-
-            // 5. Kirim notifikasi WhatsApp & Email jika pembayaran telah lunas (ANTRIAN_PRODUKSI)
-            if (isPaid) {
-                notifyOrderStatusChange({
-                    orderId: order.id,
-                    newStatus: 'ANTRIAN_PRODUKSI',
-                    note: `Pembayaran via ${payment_type?.toUpperCase()} sebesar Rp ${Math.round(parseFloat(gross_amount)).toLocaleString('id-ID')} telah berhasil diverifikasi otomatis oleh Midtrans. Pesanan Anda segera diproses cetak!`,
-                }).catch(err => {
-                    console.error('[Midtrans Webhook Notification Error]:', err);
-                });
-            }
-        }
+        // 3. Terapkan pembaruan status secara atomik & idempoten
+        await applyMidtransPaymentUpdate({
+            orderId: order.id,
+            transactionStatus: String(transaction_status || ''),
+            fraudStatus: fraud_status ? String(fraud_status) : undefined,
+            paymentType: payment_type ? String(payment_type) : undefined,
+            grossAmount: String(gross_amount),
+            transactionId: transaction_id ? String(transaction_id) : undefined,
+            source: 'WEBHOOK',
+        });
 
         return NextResponse.json({ status: 'OK', message: 'Notification processed' });
     } catch (error: any) {

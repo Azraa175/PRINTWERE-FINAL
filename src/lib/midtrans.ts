@@ -45,6 +45,7 @@ export interface SnapTransactionParams {
 export interface SnapTransactionResponse {
     token: string;
     redirect_url: string;
+    orderId: string;
 }
 
 /**
@@ -112,12 +113,13 @@ export async function createSnapTransaction(params: SnapTransactionParams): Prom
         return { ok: res.ok, data };
     };
 
-    let result = await callSnap(params.orderId);
+    let usedOrderId = params.orderId;
+    let result = await callSnap(usedOrderId);
 
     // Jika order_id sudah pernah dipakai di Midtrans (user buka ulang halaman bayar), retry dengan suffix unik
     if (!result.ok && JSON.stringify(result.data).includes('already been taken')) {
-        const retryOrderId = `${params.orderId}-${Date.now().toString().slice(-5)}`;
-        result = await callSnap(retryOrderId);
+        usedOrderId = `${params.orderId}-${Date.now().toString().slice(-5)}`;
+        result = await callSnap(usedOrderId);
     }
 
     if (!result.ok || !result.data?.token) {
@@ -132,6 +134,7 @@ export async function createSnapTransaction(params: SnapTransactionParams): Prom
     return {
         token: result.data.token,
         redirect_url: result.data.redirect_url,
+        orderId: usedOrderId,
     };
 }
 
@@ -207,6 +210,35 @@ export async function createQrisCharge(params: SnapTransactionParams): Promise<Q
         qrString: data.qr_string || '',
         expiryTime: data.expiry_time,
     };
+}
+
+/**
+ * Cek status transaksi langsung ke Midtrans Core API (/v2/{orderId}/status)
+ */
+export async function getMidtransTransactionStatus(midtransOrderId: string): Promise<any | null> {
+    try {
+        const serverKey = getMidtransServerKey();
+        const authHeader = 'Basic ' + Buffer.from(serverKey + ':').toString('base64');
+        const endpoint = `${getCoreApiBaseUrl()}/v2/${encodeURIComponent(midtransOrderId)}/status`;
+
+        const res = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': authHeader,
+            },
+            cache: 'no-store',
+        });
+
+        const data = await res.json();
+        if (!res.ok || data.status_code === '404') {
+            return null;
+        }
+        return data;
+    } catch (e) {
+        console.error('[Midtrans Get Status Error]:', e);
+        return null;
+    }
 }
 
 /**
