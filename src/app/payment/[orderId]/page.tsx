@@ -53,6 +53,10 @@ export default function PaymentPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isMidtransLoading, setIsMidtransLoading] = useState(false);
+    const [qrisData, setQrisData] = useState<{ qrCodeUrl: string; qrString: string; expiryTime?: string } | null>(null);
+    const [isQrisLoading, setIsQrisLoading] = useState(false);
+    const [qrisError, setQrisError] = useState<string | null>(null);
+    const [copiedQrisUrl, setCopiedQrisUrl] = useState(false);
     const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
     const [paymentTab, setPaymentTab] = useState<'qris' | 'transfer'>('qris');
 
@@ -65,6 +69,59 @@ export default function PaymentPage() {
             }
         }
     }, [order]);
+
+    // Generate live Midtrans Core API QRIS saat order QRIS belum dibayar
+    useEffect(() => {
+        if (!order || order.paymentMethod !== 'QRIS') return;
+        const isPending = ['MENUNGGU_PEMBAYARAN', 'PENDING', 'PEMBAYARAN_DITOLAK'].includes(order.status);
+        if (!isPending || qrisData || isQrisLoading) return;
+
+        setIsQrisLoading(true);
+        setQrisError(null);
+        fetch('/api/payment/qris', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: order.id }),
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.qrCodeUrl) {
+                    setQrisData({
+                        qrCodeUrl: data.qrCodeUrl,
+                        qrString: data.qrString || '',
+                        expiryTime: data.expiryTime,
+                    });
+                } else {
+                    setQrisError(data.error || 'Gagal memuat QRIS Midtrans');
+                }
+            })
+            .catch(() => setQrisError('Gagal terhubung ke Midtrans QRIS'))
+            .finally(() => setIsQrisLoading(false));
+    }, [order]);
+
+    // Auto-polling status pesanan setiap 5 detik saat menunggu pembayaran QRIS
+    useEffect(() => {
+        if (!order || order.paymentMethod !== 'QRIS') return;
+        const isPending = ['MENUNGGU_PEMBAYARAN', 'PENDING'].includes(order.status);
+        if (!isPending) return;
+
+        const timer = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/orders/${order.id}`);
+                const data = await res.json();
+                if (data.success && data.data && !['MENUNGGU_PEMBAYARAN', 'PENDING'].includes(data.data.status)) {
+                    setOrder(data.data);
+                    toast.success('Pembayaran QRIS berhasil diterima!');
+                    clearInterval(timer);
+                    router.push(`/orders/${order.id}`);
+                }
+            } catch {
+                // ignore polling error
+            }
+        }, 5000);
+
+        return () => clearInterval(timer);
+    }, [order, router]);
 
     useEffect(() => {
         if (orderId) {
@@ -273,10 +330,59 @@ export default function PaymentPage() {
                     </div>
 
                     <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 text-center space-y-4">
+                        {/* Live Midtrans Core API QRIS */}
+                        {isQrisLoading ? (
+                            <div className="py-10 flex flex-col items-center justify-center text-slate-500 gap-2">
+                                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                                <p className="text-xs font-medium">Membuat QRIS Midtrans...</p>
+                            </div>
+                        ) : qrisData?.qrCodeUrl ? (
+                            <div className="space-y-3">
+                                <div className="bg-white p-3 rounded-2xl shadow-xs border-2 border-slate-100 inline-block">
+                                    <img
+                                        src={qrisData.qrCodeUrl}
+                                        alt="QRIS Code Midtrans PrintWere"
+                                        className="w-52 h-52 mx-auto rounded-lg object-contain"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold text-slate-800">Scan QRIS menggunakan m-Banking atau e-Wallet</p>
+                                    <p className="text-[11px] text-slate-400">BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA, ShopeePay</p>
+                                </div>
+                                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 text-xs rounded-lg gap-1.5 border-blue-200 text-blue-700 bg-blue-50/50 hover:bg-blue-50"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(qrisData.qrCodeUrl);
+                                            setCopiedQrisUrl(true);
+                                            toast.success('URL QRIS disalin! Tempel di Midtrans Simulator.');
+                                            setTimeout(() => setCopiedQrisUrl(false), 2500);
+                                        }}
+                                    >
+                                        {copiedQrisUrl ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                                        {copiedQrisUrl ? 'URL QRIS Tersalin' : 'Salin URL QRIS (Simulator)'}
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : qrisError ? (
+                            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+                                {qrisError} — gunakan tombol Midtrans Snap di bawah.
+                            </div>
+                        ) : null}
+
+                        <div className="flex items-center gap-3 my-2">
+                            <div className="flex-1 h-px bg-slate-200" />
+                            <span className="text-[11px] text-slate-400 font-semibold uppercase">atau bayar via metode lain</span>
+                            <div className="flex-1 h-px bg-slate-200" />
+                        </div>
+
                         <Button
                             onClick={handleMidtransPay}
                             disabled={isMidtransLoading}
-                            className="w-full h-12 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center justify-center gap-2"
+                            className="w-full h-11 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center justify-center gap-2"
                         >
                             {isMidtransLoading ? (
                                 <>
@@ -286,33 +392,14 @@ export default function PaymentPage() {
                             ) : (
                                 <>
                                     <Sparkles className="h-4 w-4 text-amber-300" />
-                                    Bayar Sekarang via Midtrans
+                                    Pilih Metode Lain (VA / Kartu / E-Wallet)
                                     <ExternalLink className="h-3.5 w-3.5" />
                                 </>
                             )}
                         </Button>
 
-                        <div className="flex items-center gap-3 my-2">
-                            <div className="flex-1 h-px bg-slate-200" />
-                            <span className="text-[11px] text-slate-400 font-semibold uppercase">atau scan manual</span>
-                            <div className="flex-1 h-px bg-slate-200" />
-                        </div>
-
-                        <div className="bg-white p-4 rounded-2xl shadow-xs border-2 border-slate-100 inline-block">
-                            <Image
-                                src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=PRINTWERE-PAYMENT-MOCK"
-                                alt="QRIS Code PrintWere"
-                                width={180}
-                                height={180}
-                                className="mx-auto rounded-lg"
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <p className="text-xs font-bold text-slate-800">Scan QRIS menggunakan m-Banking atau e-Wallet:</p>
-                            <p className="text-[11px] text-slate-400">BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA, ShopeePay</p>
-                        </div>
                         <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800">
-                            Pembayaran Midtrans / QRIS diverifikasi otomatis oleh sistem.
+                            Status pesanan otomatis terverifikasi setelah pembayaran berhasil.
                         </div>
                         <Link href={`/orders/${order.id}`} className="block pt-1">
                             <Button variant="outline" className="w-full h-10 rounded-xl text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50">

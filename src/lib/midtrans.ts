@@ -18,6 +18,12 @@ export function getSnapApiBaseUrl(): string {
         : 'https://app.sandbox.midtrans.com';
 }
 
+export function getCoreApiBaseUrl(): string {
+    return isMidtransProduction()
+        ? 'https://api.midtrans.com'
+        : 'https://api.sandbox.midtrans.com';
+}
+
 export interface SnapTransactionParams {
     orderId: string;
     grossAmount: number;
@@ -126,6 +132,80 @@ export async function createSnapTransaction(params: SnapTransactionParams): Prom
     return {
         token: result.data.token,
         redirect_url: result.data.redirect_url,
+    };
+}
+
+export interface QrisChargeResponse {
+    transactionId: string;
+    orderId: string;
+    qrCodeUrl: string;
+    qrString: string;
+    expiryTime?: string;
+}
+
+/**
+ * Buat transaksi QRIS langsung via Midtrans Core API (/v2/charge)
+ * Menghasilkan URL gambar PNG resmi (api.sandbox.midtrans.com/v2/qris/.../qr-code)
+ */
+export async function createQrisCharge(params: SnapTransactionParams): Promise<QrisChargeResponse> {
+    const serverKey = getMidtransServerKey();
+    const authHeader = 'Basic ' + Buffer.from(serverKey + ':').toString('base64');
+    const endpoint = `${getCoreApiBaseUrl()}/v2/charge`;
+    const amount = Math.round(params.grossAmount);
+
+    const callCharge = async (midtransOrderId: string) => {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': authHeader,
+            },
+            body: JSON.stringify({
+                payment_type: 'qris',
+                transaction_details: {
+                    order_id: midtransOrderId,
+                    gross_amount: amount,
+                },
+                customer_details: {
+                    first_name: params.customerDetails?.firstName || 'Pelanggan',
+                    email: params.customerDetails?.email || 'customer@printwere.com',
+                    phone: params.customerDetails?.phone || '',
+                },
+            }),
+        });
+        const data = await res.json();
+        return { ok: res.ok, data };
+    };
+
+    let result = await callCharge(params.orderId);
+
+    // Retry dengan suffix unik jika order_id sudah pernah dipakai di Midtrans
+    if (
+        result.data?.status_code === '406' ||
+        JSON.stringify(result.data).toLowerCase().includes('already') ||
+        JSON.stringify(result.data).toLowerCase().includes('duplicate')
+    ) {
+        const retryOrderId = `${params.orderId}-Q${Date.now().toString().slice(-4)}`;
+        result = await callCharge(retryOrderId);
+    }
+
+    const data = result.data;
+    const qrAction = Array.isArray(data?.actions)
+        ? data.actions.find((a: any) => a.name === 'generate-qr-code')
+        : null;
+
+    if (!qrAction?.url) {
+        console.error('[Midtrans Core QRIS Error]:', data);
+        throw new Error(data?.status_message || 'Gagal membuat QRIS Midtrans');
+    }
+
+    return {
+        transactionId: data.transaction_id,
+        orderId: data.order_id,
+        qrCodeUrl: qrAction.url,
+        qrString: data.qr_string || '',
+        expiryTime: data.expiry_time,
     };
 }
 
