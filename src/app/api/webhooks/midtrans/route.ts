@@ -20,12 +20,19 @@ export async function POST(req: Request) {
 
         console.log(`[Midtrans Webhook Received] Order: ${order_id}, Status: ${transaction_status}, Type: ${payment_type}`);
 
+        if (!order_id || !status_code || !gross_amount || !signature_key) {
+            return NextResponse.json(
+                { status: 'error', message: 'Missing required Midtrans notification fields' },
+                { status: 400 }
+            );
+        }
+
         // 1. Verifikasi Signature Key untuk keamanan
         const isValidSignature = verifyMidtransSignature(
-            order_id,
-            status_code,
-            gross_amount,
-            signature_key
+            String(order_id),
+            String(status_code),
+            String(gross_amount),
+            String(signature_key)
         );
 
         if (!isValidSignature) {
@@ -36,12 +43,22 @@ export async function POST(req: Request) {
             );
         }
 
-        // 2. Cari order di database berdasarkan orderNo atau ID
+        // Tangani Test Notification dari Midtrans Dashboard ("payment_notif_test_...")
+        if (String(order_id).startsWith('payment_notif_test_')) {
+            return NextResponse.json({ status: 'OK', message: 'Midtrans test notification received successfully' });
+        }
+
+        // 2. Cari order di database berdasarkan orderNo, ID, atau prefix orderNo (jika ada suffix retry)
+        const baseOrderNo = String(order_id).split('-').length > 3
+            ? String(order_id).split('-').slice(0, 3).join('-')
+            : String(order_id);
+
         const order = await prisma.order.findFirst({
             where: {
                 OR: [
-                    { orderNo: order_id },
-                    { id: order_id },
+                    { orderNo: String(order_id) },
+                    { orderNo: baseOrderNo },
+                    { id: String(order_id) },
                 ],
             },
             include: {

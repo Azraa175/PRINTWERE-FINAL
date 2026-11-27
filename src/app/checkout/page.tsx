@@ -98,11 +98,7 @@ export default function CheckoutPage() {
             if (result.success && result.data) {
                 clearCart();
                 toast.success('Pesanan berhasil dibuat!');
-                if (data.paymentMethod === 'TRANSFER' || data.paymentMethod === 'COD') {
-                    router.push(`/payment/${result.data.id}`);
-                } else {
-                    router.push(`/my-orders`);
-                }
+                router.push(`/payment/${result.data.id}`);
             } else {
                 toast.error(result.error || 'Gagal membuat pesanan');
             }
